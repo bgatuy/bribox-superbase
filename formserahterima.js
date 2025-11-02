@@ -721,7 +721,8 @@ btnReset?.addEventListener('click', async ()=>{
 
     // 2. Hapus semua baris dari tabel pdf_history milik user ini
     // RLS akan otomatis membatasi ini hanya untuk user_id yang sedang login
-    const { error: dbError } = await supabaseClient.from('pdf_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Gunakan user.id untuk menghapus semua data milik pengguna yang sedang login.
+    const { error: dbError } = await supabaseClient.from('pdf_history').delete().eq('user_id', user.id);
     if (dbError) throw dbError;
 
     // 3. Hapus semua file dari storage
