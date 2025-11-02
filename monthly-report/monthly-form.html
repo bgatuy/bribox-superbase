@@ -163,6 +163,8 @@
     </main>
   </div>
 
+  <script>
+    // Script untuk membuka submenu 'Monthly Report' secara otomatis jika halaman aktif ada di dalamnya
     (function(){
       const m=document.getElementById('nav-monthly');
       const p=document.querySelector('.nav-group[aria-controls="nav-monthly"]');
@@ -171,36 +173,8 @@
       p.setAttribute('aria-expanded', hasActive?'true':'false');
       m.hidden=!hasActive;
     })();
-
-    document.addEventListener('DOMContentLoaded', () => {
-      if (document.body.dataset.page !== 'monthly') return;
-
-      const grid = document.querySelector('body[data-page="monthly"] .grid');
-      if (!grid) return;
-
-      const findFieldByLabel = (txt) => {
-        const fields = grid.querySelectorAll('.field');
-        const norm = s => s.replace(/\s+/g,' ').trim().toLowerCase();
-        const want = norm(txt);
-        return Array.from(fields).find(f => {
-          const sp = f.querySelector(':scope > span');
-          return sp && norm(sp.textContent) === want;
-        });
-      };
-
-      const fBerangkat = findFieldByLabel('Jam Berangkat');
-      const fLaporan  = findFieldByLabel('Jam Masuk Laporan (auto)');
-
-      if (fBerangkat && fLaporan && fBerangkat !== fLaporan) {
-        const placeholder = document.createElement('div');
-        grid.insertBefore(placeholder, fBerangkat);
-        grid.replaceChild(fBerangkat, fLaporan);
-        grid.insertBefore(fLaporan, placeholder);
-        grid.removeChild(placeholder);
-      }
-    });
   </script>
-
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js"></script>
   <script src="../utils.js"></script>
