@@ -740,8 +740,6 @@ btnReset?.addEventListener('click', async ()=>{
   }
 });
 
-window.addEventListener('storage', (e)=>{ if(e.key==='pdfHistori') renderTabel(); });
-
 // ========== TOMBOL LAMA: generate gabungan (semua) ==========
 btnGenerate?.addEventListener('click', async ()=>{
   const tanggalInput = inputTanggalSerah.value;
@@ -815,57 +813,3 @@ btnGenFilesOnly?.addEventListener('click', async ()=>{
   catch(err){ console.error(err); alert('Gagal menggabungkan PDF asli.'); }
   finally{ hideSpinner(); }
 });
-
-
-/********************
- *   DEBUG HELPER   *
- ********************/
-async function debugListPDF(){
-  const db = await openDb();
-  const tx = db.transaction(['pdfs'],'readonly');
-  const store = tx.objectStore('pdfs');
-  const req = store.getAll();
-  req.onsuccess = ()=>{ console.log('📂 File di IndexedDB:', req.result.map(x=>({
-    name:x.name, hash:x.contentHash, meta:x.meta
-  }))); };
-}
-window.debugListPDF = debugListPDF;
-
-async function dedupePdfsKeepLatest(){
-  const db = await openDb();
-  const seen = new Map();
-  const toDelete = [];
-  await new Promise((resolve)=>{
-    const tx = db.transaction(['pdfs'],'readonly');
-    const st = tx.objectStore('pdfs');
-    const cur = st.openCursor();
-    cur.onsuccess = (e)=>{
-      const c = e.target.result;
-      if(!c){ resolve(); return; }
-      const v = c.value || {};
-      const key = v.contentHash || v.name || ('id:'+c.key);
-      const ts = Date.parse(v.uploadedAt || v.dateAdded || 0) || c.key;
-      const prev = seen.get(key);
-      if(!prev || ts > prev.ts){
-        if(prev) toDelete.push(prev.key);
-        seen.set(key, { key: c.key, ts });
-      } else {
-        toDelete.push(c.key);
-      }
-      c.continue();
-    };
-    cur.onerror = ()=> resolve();
-  });
-  await new Promise((resolve)=>{
-    if(!toDelete.length) return resolve();
-    const tx = db.transaction(['pdfs'],'readwrite');
-    const st = tx.objectStore('pdfs');
-    let left = toDelete.length;
-    toDelete.forEach(k=>{
-      const d = st.delete(k);
-      d.onsuccess = d.onerror = ()=>{ if(--left===0) resolve(); };
-    });
-  });
-  console.log('Deleted duplicates:', toDelete.length);
-}
-window.dedupePdfsKeepLatest = dedupePdfsKeepLatest;
