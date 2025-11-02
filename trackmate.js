@@ -1,6 +1,5 @@
 // ====== Trackmate ======
 
-/* ========= HASH UTIL (BARU) ========= */
 async function sha256File(file) {
   try {
     const buf = await file.arrayBuffer();
@@ -12,8 +11,6 @@ async function sha256File(file) {
   }
 }
 
-/* ========= INIT ========= */
-
 document.addEventListener('DOMContentLoaded', function () {
   const title = document.querySelector('.dashboard-header h1')?.textContent?.toLowerCase() || "";
   const body = document.body;
@@ -21,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function () {
   else if (title.includes('appsheet'))  body.setAttribute('data-page', 'appsheet');
   else if (title.includes('serah'))     body.setAttribute('data-page', 'serah');
   else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
-
   if (typeof initSidebar === 'function') initSidebar();
   if (typeof initAdminFeatures === 'function') initAdminFeatures();
   if (typeof initLogoutButton === 'function') initLogoutButton();
@@ -260,54 +256,53 @@ Status : ${status}`;
 }
 
 /* ========= Copy & Save Histori (single final toast) ========= */
-copyBtn?.addEventListener('click', async () => {
+copyBtn?.addEventListener("click", async () => {
   showSpinner?.();
   try {
-    // 0) Copy teks ke clipboard
-    const text = output?.textContent || '';
+    // 1. Copy teks ke clipboard
+    const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
     if (copyBtn) {
       copyBtn.textContent = "Copied!";
       setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
     }
 
-    // 1) Validasi file
+    // 2. Validasi file
     const file = fileInput?.files?.[0];
-    if (!file) {
-      showToast('Tidak ada file PDF yang dipilih.', 3500, 'warn');
-      return;
-    }
+    if (!file) { showToast("Tidak ada file PDF yang dipilih.", 3500, "warn"); return; }
 
-    // 2) Hash isi file untuk dijadikan path unik & cek duplikat
+    // 3. Persiapan data untuk Supabase
     const contentHash = await sha256File(file);
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) throw new Error('User tidak login.');
     const filePath = `${user.id}/${contentHash}.pdf`;
 
-    // 3) Upload file ke Supabase Storage
-    // 'upsert: true' berarti timpa file jika sudah ada (efeknya seperti 'repair')
+    // 4. Upload file ke Supabase Storage
     const { error: uploadError } = await supabaseClient.storage
-      .from('pdf-forms') // Nama bucket di Supabase Storage
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+      .from('pdf-forms')
+      .upload(filePath, file, { upsert: true });
     if (uploadError) throw uploadError;
 
-    // 4) Simpan metadata ke tabel 'pdf_history' di database
-    // 'onConflict: 'content_hash'' akan update data jika hash sudah ada
-    const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
+    // 5. Ekstrak metadata posisi TTD (INI BAGIAN PENTING YANG DIKEMBALIKAN)
+    const meta = await autoCalibratePdf(await file.arrayBuffer()).catch(err => {
+      console.warn("Gagal auto-calibrate PDF:", err);
+      return null; // Tetap lanjutkan walau kalibrasi gagal
+    });
+
+    // 6. Simpan semua info ke database Supabase
+    const namaUkerBersih = stripLeadingColon(unitKerja) || "-";
     const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
-      content_hash: contentHash, // Kunci unik untuk mencegah duplikat
+      content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: tanggalRaw,
       file_name: file.name,
       storage_path: filePath,
       size_bytes: file.size,
+      meta: meta, // Simpan metadata posisi TTD
     }, { onConflict: 'content_hash' });
     if (dbError) throw dbError;
 
-    showToast('Berhasil disimpan ke server.', 3000, 'success');
+    showToast("Berhasil disimpan ke server.", 3000, "success");
   } catch (err) {
     console.error("Copy handler error:", err);
     showToast(`Error: ${err?.message || err}`, 4500, "warn");

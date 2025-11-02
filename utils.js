@@ -87,8 +87,7 @@ function initSidebar() {
  * Menambahkan tombol Logout ke sidebar dan menangani fungsinya.
  */
 function initLogoutButton() {
-  const sidebarNav = document.querySelector('.sidebar nav');
-  const mobileLogoutBtn = document.getElementById('btnLogoutMobile');
+  const headerLogoutBtn = document.getElementById('btnLogoutHeader');
 
   // Fungsi logout bersama
   const handleLogout = async () => {
@@ -96,26 +95,12 @@ function initLogoutButton() {
     if (typeof supabaseClient !== 'undefined') {
       await supabaseClient.auth.signOut();
     }
-    window.location.href = 'login.html';
+    window.location.href = '/login.html'; // FIX: Gunakan path absolut
   };
 
-  // 1. Tambahkan tombol logout ke sidebar (Desktop)
-  if (sidebarNav && !sidebarNav.querySelector('.btn-logout')) {
-    const separator = document.createElement('hr');
-    separator.style.borderColor = 'rgba(255,255,255,0.1)';
-    separator.style.margin = '1rem 0';
-    sidebarNav.appendChild(separator);
-
-    const logoutButton = document.createElement('button');
-    logoutButton.className = 'nav-group btn-logout';
-    logoutButton.innerHTML = `<span class="material-icons" style="color: #fca5a5;">logout</span> Logout`;
-    logoutButton.addEventListener('click', handleLogout);
-    sidebarNav.appendChild(logoutButton);
-  }
-
-  // 2. Tambahkan event listener ke tombol logout di bottom nav (Mobile)
-  if (mobileLogoutBtn) {
-    mobileLogoutBtn.addEventListener('click', handleLogout);
+  // Tambahkan event listener ke tombol logout di header
+  if (headerLogoutBtn) {
+    headerLogoutBtn.addEventListener('click', handleLogout);
   }
 }
 

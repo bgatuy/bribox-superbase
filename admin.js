@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user || user.id !== ADMIN_USER_ID) {
     // Jika bukan admin, tendang ke halaman utama
     alert('Akses ditolak. Anda bukan admin.');
-    window.location.href = 'index.html';
+    window.location.href = '/index.html'; // FIX: Gunakan path absolut
     return;
   }
 

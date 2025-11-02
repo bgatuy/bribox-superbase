@@ -23,7 +23,7 @@ if (!window.location.pathname.endsWith('login.html')) {
         // artinya pengguna benar-benar belum login.
         if (event === 'INITIAL_SESSION' && !session) {
             // Tendang ke halaman login.
-            window.location.href = 'login.html';
+            window.location.href = '/login.html'; // FIX: Gunakan path absolut
         }
     });
 }
