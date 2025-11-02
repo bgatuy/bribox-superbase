@@ -125,7 +125,7 @@ function initLogoutButton() {
  */
 async function initAdminFeatures() {
   // ID Admin yang sama dengan yang di Edge Function
-  const ADMIN_USER_ID = 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6'; // <-- GANTI DENGAN ID ADMIN ANDA
+  const ADMIN_USER_ID = 'idhuunk07@gmail.com'; // <-- PASTE ID ANDA DI SINI
 
   if (typeof supabaseClient === 'undefined') return;
 

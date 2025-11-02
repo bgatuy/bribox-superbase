@@ -12,7 +12,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // INI ADALAH SCRIPT "PENJAGA GERBANG"
 // ==================================================
 // Cek jika kita TIDAK sedang di halaman login
-if (!window.location.pathname.endsWith('login.html') && !window.location.pathname.endsWith('register.html')) {
+if (!window.location.pathname.endsWith('login.html')) {
     // Menggunakan onAuthStateChange untuk menunggu status login siap.
     // Ini akan berjalan sekali saat halaman dimuat.
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
