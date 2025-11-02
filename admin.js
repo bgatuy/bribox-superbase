@@ -1,19 +1,23 @@
 // admin.js
 
-// ID Admin yang sama dengan yang di Edge Function
-const ADMIN_USER_ID = 'f5d9d662-4021-41b0-8586-5705da517c66'; // <-- PASTE ID ANDA DI SINI
-
 document.addEventListener('DOMContentLoaded', async () => {
   // Pastikan supabaseClient sudah ada
   if (typeof supabaseClient === 'undefined') {
     alert('Koneksi ke Supabase gagal. Halaman tidak dapat dimuat.');
+    window.location.href = '/index.html';
     return;
   }
 
   // 1. Verifikasi bahwa pengguna adalah admin
-  const { data: { user } } = await supabaseClient.auth.getUser();
+  const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
 
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (error) {
+    alert(`Gagal memverifikasi akses admin: ${error.message}`);
+    window.location.href = '/index.html';
+    return;
+  }
+
+  if (!isAdmin) {
     // Jika bukan admin, tendang ke halaman utama
     alert('Akses ditolak. Anda bukan admin.');
     window.location.href = '/index.html'; // FIX: Gunakan path absolut

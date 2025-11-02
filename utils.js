@@ -109,14 +109,19 @@ function initLogoutButton() {
  * Fungsi ini harus dipanggil setelah user terautentikasi.
  */
 async function initAdminFeatures() {
-  // ID Admin yang sama dengan yang di Edge Function
-  const ADMIN_USER_ID = 'f5d9d662-4021-41b0-8586-5705da517c66'; // <-- PASTE ID ANDA DI SINI
- 
-
   if (typeof supabaseClient === 'undefined') return;
 
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (user && user.id === ADMIN_USER_ID) {
+  // Panggil fungsi is_admin() dari database untuk memeriksa role.
+  // Ini adalah cara yang lebih baik daripada hardcoding ID.
+  const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
+
+  if (error) {
+    // Jangan tampilkan error ke user, cukup log di console.
+    console.error('Gagal memeriksa status admin:', error.message);
+    return;
+  }
+
+  if (isAdmin) {
     const nav = document.querySelector('.sidebar nav');
     if (nav && !nav.querySelector('a[href="admin.html"]')) {
       const adminLink = document.createElement('a');
