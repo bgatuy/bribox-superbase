@@ -1,7 +1,7 @@
 // admin.js
 
 // ID Admin yang sama dengan yang di Edge Function
-const ADMIN_USER_ID = 'USER_ID_ADMIN_ANDA_YANG_SUDAH_DISALIN'; // <-- PASTE ID ANDA DI SINI
+const ADMIN_USER_ID = 'f5d9d662-4021-41b0-8586-5705da517c6'; // <-- GANTI DENGAN ID ADMIN ANDA
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Pastikan supabaseClient sudah ada
