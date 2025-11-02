@@ -22,25 +22,6 @@ const DEBUG_SHOW_MARKER = false;   // titik oranye
 const DEBUG_CONSOLE_LOG = false;   // log stamping & meta
 
 /********************
- *   UI: SPINNER    *
- ********************/
-const spinner = document.createElement('div');
-spinner.className = 'loading-spinner';
-spinner.innerHTML = '<div class="spinner"></div>';
-document.body.appendChild(spinner);
-spinner.style.display = 'none';
-function showSpinner() { spinner.style.display = 'flex'; }
-function hideSpinner()  { spinner.style.display = 'none'; }
-const style = document.createElement('style');
-style.textContent = `
-.loading-spinner{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:9999;display:flex;align-items:center;justify-content:center}
-.spinner{width:40px;height:40px;border:4px solid #ccc;border-top-color:#007bff;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 12px;border-radius:8px;z-index:99999;opacity:0;transition:.2s}
-`;
-document.head.appendChild(style);
-
-/********************
  *   SIDEBAR/UX     *
  ********************/
 document.addEventListener('DOMContentLoaded', function () {

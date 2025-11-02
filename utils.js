@@ -2,6 +2,27 @@
 // Berisi fungsi-fungsi yang dipakai di banyak halaman.
 
 /**
+ * Inisialisasi dan menyediakan fungsi untuk menampilkan/menyembunyikan spinner loading global.
+ */
+(function initGlobalSpinner() {
+  const spinner = document.createElement('div');
+  spinner.className = 'loading-spinner';
+  spinner.innerHTML = '<div class="spinner"></div>';
+  spinner.style.display = 'none';
+  
+  const style = document.createElement('style');
+  style.textContent = `.loading-spinner{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:9999;display:flex;align-items:center;justify-content:center}.spinner{width:40px;height:40px;border:4px solid #ccc;border-top-color:#007bff;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`;
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    document.head.appendChild(style);
+    document.body.appendChild(spinner);
+  });
+
+  window.showSpinner = () => { spinner.style.display = 'flex'; };
+  window.hideSpinner = () => { spinner.style.display = 'none'; };
+})();
+
+/**
  * Menampilkan notifikasi toast.
  * @param {string} message Pesan yang akan ditampilkan.
  * @param {number} [duration=3000] Durasi dalam milidetik.
