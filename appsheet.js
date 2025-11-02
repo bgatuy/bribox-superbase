@@ -256,7 +256,6 @@ copyBtn?.addEventListener('click', async () => {
     // 4) Simpan metadata ke database
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
     const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
-      user_id: user.id, // <-- TAMBAHKAN BARIS INI
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: currentTanggalRaw,

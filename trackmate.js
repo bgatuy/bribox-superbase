@@ -298,7 +298,6 @@ copyBtn?.addEventListener('click', async () => {
     // 'onConflict: 'content_hash'' akan update data jika hash sudah ada
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
     const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
-      user_id: user.id, // <-- TAMBAHKAN BARIS INI
       content_hash: contentHash, // Kunci unik untuk mencegah duplikat
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: tanggalRaw,

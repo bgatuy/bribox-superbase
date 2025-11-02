@@ -146,8 +146,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const tempuhMin = Math.max(0, (tiba - berangkat + 1440) % 1440);
 
     const rec = {
-      // user_id WAJIB ditambahkan untuk memenuhi aturan RLS
-      user_id: (await supabaseClient.auth.getUser()).data.user.id,
       month,
       date: dateStr,
       tanggal_label: formatTanggalLong(dateStr),
