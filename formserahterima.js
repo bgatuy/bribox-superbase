@@ -53,7 +53,7 @@ async function getPdfHistoriFromSupabase() {
     const { data, error } = await supabaseClient
       .from('pdf_history')
       .select('*')
-      .order('uploaded_at', { ascending: false });
+      .order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (error) {
@@ -130,8 +130,8 @@ async function renderTabel(){
   data = data
     .map((it, i) => ({ ...it, _idx: i }))
     .sort((a, b) => {
-      const ka = toNumDateDMY(a.tanggal_pekerjaan) || Date.parse(a.uploaded_at || 0) || 0;
-      const kb = toNumDateDMY(b.tanggal_pekerjaan) || Date.parse(b.uploaded_at || 0) || 0;
+      const ka = toNumDateDMY(a.tanggal_pekerjaan) || Date.parse(a.created_at || 0) || 0;
+      const kb = toNumDateDMY(b.tanggal_pekerjaan) || Date.parse(b.created_at || 0) || 0;
       if (ka !== kb) return ka - kb;
       return a._idx - b._idx;
     })
