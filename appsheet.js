@@ -269,7 +269,7 @@ copyBtn?.addEventListener('click', async () => {
       size_bytes: currentFile.size,
       meta: meta,
     };
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, { onConflict: 'user_id,content_hash' }); // <-- PERBAIKI INI
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, { onConflict: 'content_hash' });
     if (dbError) throw dbError;
 
     showToast("Berhasil disimpan ke server.", 3000, "success");

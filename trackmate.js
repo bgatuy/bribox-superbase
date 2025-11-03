@@ -330,7 +330,7 @@ copyBtn?.addEventListener("click", async () => {
     };
     const { error: dbError } = await supabaseClient
       .from('pdf_history')
-      .upsert(payload, { onConflict: 'user_id,content_hash' });
+      .upsert(payload, { onConflict: 'content_hash' });
     if (dbError) throw dbError;
 
     showToast?.("Berhasil disimpan ke server.", 3000, "success");
