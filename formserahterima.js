@@ -1,4 +1,4 @@
-// ===== FORM SERAH TERIMA =====
+// ===== FORM SERAH TERIMA (Supabase + Meta reuse + Anchor patched) =====
 
 /*************************
  *   ELEMENTS & GLOBALS  *
@@ -17,7 +17,7 @@ const btnGenFilesOnly = document.getElementById('btnGenFilesOnly');
 // Master checkbox (opsional – jika kamu tambah di header)
 const pickAllCheckbox = document.getElementById('pickAll');
 
-// Debug flags (boleh dibuat false kalau sudah stabil)
+// Debug flags
 const DEBUG_SHOW_MARKER = false;   // titik oranye
 const DEBUG_CONSOLE_LOG = false;   // log stamping & meta
 
@@ -32,14 +32,24 @@ document.addEventListener('DOMContentLoaded', function () {
   else if (title.includes('serah')) body.setAttribute('data-page','serah');
   else if (title.includes('merge')) body.setAttribute('data-page','merge');
 
-  // Panggil initSidebar dari utils.js
+  // hooks external (kalau ada)
   if (typeof initSidebar === 'function') initSidebar();
   if (typeof initAdminFeatures === 'function') initAdminFeatures();
   if (typeof initLogoutButton === 'function') initLogoutButton();
   if (typeof initActiveNav === 'function') initActiveNav();
-  renderTabel(); 
+
+  renderTabel();
   loadNama();
 });
+
+/********************
+ *   SUPABASE HELP  *
+ ********************/
+async function getUserOrThrow() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  if (error || !session?.user) throw new Error('User tidak login.');
+  return session.user;
+}
 
 /********************
  *   UTILITIES      *
@@ -47,22 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
 const stripLeadingColon = (s) => (s || '').replace(/^\s*:+\s*/, '');
 function toNumDateDMY(s){const m=(s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/); if(!m) return 0; const ts=Date.parse(`${m[3]}-${m[2]}-${m[1]}`); return Number.isNaN(ts)?0:ts;}
 function formatTanggalSerahForPdf(val){ if(!val||!/^\d{4}-\d{2}-\d{2}$/.test(val)) return '-'; const [y,m,d]=val.split('-'); return `${d}/${m}/${y}`;}
-
-async function getPdfHistoriFromSupabase() {
-  if (typeof supabaseClient === 'undefined') return [];
-  try {
-    const { data, error } = await supabaseClient
-      .from('pdf_history')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Gagal mengambil histori PDF:', error);
-    showToast(`Gagal memuat data: ${error.message}`, 4000, 'warn');
-    return [];
-  }
-}
 
 function ensureLibsOrThrow(opts = { requireJsPDF: false, requirePDFLib: true, requirePdfjs: false }) {
   if (opts.requireJsPDF && !window.jspdf?.jsPDF) throw new Error("jsPDF belum dimuat.");
@@ -75,12 +69,10 @@ function ensureLibsOrThrow(opts = { requireJsPDF: false, requirePDFLib: true, re
  ********************/
 const KEY_NAMA='serah_ttd_nama';
 function loadNama(){
-  // jangan restore dari storage; selalu balik ke default
+  // selalu balik default (biar nggak salah stamp dari cache)
   if (selNama) { selNama.selectedIndex = 0; selNama.value = ''; }
-  // bersihkan sisa lama kalau pernah tersimpan
   localStorage.removeItem(KEY_NAMA);
 }
-
 window.addEventListener('pageshow', (e) => {
   const nav = performance.getEntriesByType('navigation')[0];
   if (e.persisted || (nav && nav.type !== 'navigate')) {
@@ -91,14 +83,12 @@ window.addEventListener('pageshow', (e) => {
 /********************
  *   TABLE RENDER   *
  ********************/
-// Perkuat agar tetap benar walau ada kolom checkbox "Pilih" di paling kiri
 function collectRowsForPdf(){
   const rows=[];
   document.querySelectorAll('#historiBody tr').forEach((tr,i)=>{
     const cells = tr.querySelectorAll('td');
     if (cells.length < 6) return;
 
-    // Deteksi keberadaan kolom "Pilih"
     const hasPickCol = !!tr.querySelector('input.pick') || (cells.length >= 7);
 
     const idxNo   = hasPickCol ? 1 : 0;
@@ -120,11 +110,27 @@ function collectRowsForPdf(){
   return rows;
 }
 
+async function getPdfHistoriFromSupabase() {
+  if (typeof supabaseClient === 'undefined') return [];
+  try {
+    // RLS akan otomatis filter by user_id, tapi kita bisa ambil kolom penting saja
+    const { data, error } = await supabaseClient
+      .from('pdf_history')
+      .select('content_hash, nama_uker, tanggal_pekerjaan, file_name, storage_path, size_bytes, meta, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Gagal mengambil histori PDF:', error);
+    showToast?.(`Gagal memuat data: ${error.message}`, 4000, 'warn');
+    return [];
+  }
+}
+
 async function renderTabel(){
   if(!tbody) return;
   let data = await getPdfHistoriFromSupabase();
   if(!data.length){
-    // kalau kamu menambah kolom "Pilih", ubah colspan ke 7 (di HTML header)
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Belum ada data histori. Unggah PDF di Trackmate atau AppSheet.</td></tr>`;
     return;
   }
@@ -138,7 +144,6 @@ async function renderTabel(){
     })
     .map((it,i)=>({ ...it, _no: i+1, nama_uker: stripLeadingColon(it.nama_uker) }));
 
-  // cek apakah header punya kolom Pilih (master checkbox)
   const headerHasPick = !!pickAllCheckbox;
 
   tbody.innerHTML = data.map((item, idx)=>{
@@ -157,43 +162,59 @@ async function renderTabel(){
     </tr>`;
   }).join('');
 
-  // sinkron master checkbox setelah render
   syncPickAllState();
 }
 
 /********************
- *   INDEXEDDB (Hanya untuk membaca file yang ada) *
+ *   STORAGE FETCH  *
  ********************/
-
 /**
- * Mengambil semua buffer PDF milik pengguna dari Supabase Storage.
+ * Ambil semua buffer PDF milik user dari Supabase Storage + gabung META dari table pdf_history.
  * @returns {Promise<Array<{name: string, buffer: ArrayBuffer, meta: any, contentHash: string}>>}
  */
 async function getAllPdfBuffersFromSupabase() {
   if (!supabaseClient) return [];
-  
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return [];
+  const user = await getUserOrThrow();
 
+  // 1) List file per user folder
   const { data: files, error: listError } = await supabaseClient.storage
     .from('pdf-forms')
     .list(user.id, { limit: 1000 });
-
   if (listError) {
-    console.error("Gagal mengambil daftar file dari Supabase:", listError);
+    console.error("Gagal ambil daftar file dari Supabase:", listError);
     throw listError;
   }
+  const fileNames = (files || []).map(f => f.name).filter(n => n?.endsWith('.pdf'));
+  const hashes = fileNames.map(n => n.replace(/\.pdf$/i,''));
 
+  // 2) Ambil meta untuk semua hash itu dalam satu query
+  let metaMap = new Map();
+  if (hashes.length) {
+    const { data: rows, error: metaErr } = await supabaseClient
+      .from('pdf_history')
+      .select('content_hash, meta')
+      .in('content_hash', hashes);
+    if (!metaErr && Array.isArray(rows)) {
+      metaMap = new Map(rows.map(r => [r.content_hash, r.meta || null]));
+    }
+  }
+
+  // 3) Download tiap file & susun output + meta
   const buffers = [];
-  for (const file of files) {
+  for (const name of fileNames) {
     const { data: blob, error: downloadError } = await supabaseClient.storage
       .from('pdf-forms')
-      .download(`${user.id}/${file.name}`);
-    
+      .download(`${user.id}/${name}`);
     if (downloadError) continue;
-    
+
     const buffer = await blob.arrayBuffer();
-    buffers.push({ name: file.name, buffer, meta: null, contentHash: file.name.replace('.pdf', '') });
+    const chash = name.replace(/\.pdf$/i,'');
+    buffers.push({
+      name,
+      buffer,
+      meta: metaMap.get(chash) ?? null,
+      contentHash: chash
+    });
   }
   return buffers;
 }
@@ -250,9 +271,16 @@ async function findAnchorsDiselesaikan(buffer){
       const score = 1.6*dx + dy;
       if (dx <= 120 && score < best){ best = score; bawah = it; }
     }
-    // titik dasar: sedikit di atas label kecil; x di pusat kolom tengah
-    let x = xA + 95;
-    let y = bawah ? (bawah.transform[5] + 12) : (yA - 32);
+
+    // PATCHED: kunci kolom (hindari angka paten +95)
+    let x;
+    if (bawah) {
+      const xB = bawah.transform[4];
+      x = (Math.abs(xB - xA) <= 120) ? (xA + (xB - xA) * 0.5) : (xA + 90);
+    } else {
+      x = xA + 90;
+    }
+    let y = bawah ? (bawah.transform[5] + 10) : (yA - 30);
 
     anchors.push({ x, y });
   }
@@ -268,7 +296,6 @@ async function generatePdfSerahTerima(){
   const histori = await getPdfHistoriFromSupabase();
   if(!histori.length){ alert("Histori kosong. Tidak bisa generate PDF."); return; }
 
-  // Ambil pilihan nama
   const namaTeknisi = (selNama?.value || '').trim();
   const namaDiselesaikan = namaTeknisi || '';
 
@@ -369,12 +396,11 @@ async function generatePdfSerahTerima(){
             x = an.x; y = an.y;
           }
         }
-        // Geser global
+        // Geser global (koreksi kecil)
         const GLOBAL_X_BIAS_PT = -55;
         const GLOBAL_Y_BIAS_PT = 3;
         x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT;
 
-        // Debug marker/log
         if (DEBUG_SHOW_MARKER) {
           page.drawRectangle({ x:x-3, y:y-3, width:6, height:6, color: PDFLib.rgb(1,0.5,0) });
         }
@@ -402,7 +428,6 @@ async function generatePdfSerahTerima(){
   const mergedBytes = await mergedPdf.save();
   const mergedBlob  = new Blob([mergedBytes], { type:'application/pdf' });
 
-  // download
   const url = URL.createObjectURL(mergedBlob);
   const a = document.createElement('a'); a.href = url; a.download = 'Form CM merged.pdf'; a.click();
   URL.revokeObjectURL(url);
@@ -432,6 +457,7 @@ async function checkMissingSelection(selected){
   }
   return missing;
 }
+
 function markMissingRows(missing){
   const setH = new Set(missing.map(m=>m.hash).filter(Boolean));
   const setN = new Set(missing.map(m=>m.name).filter(Boolean));
@@ -461,8 +487,7 @@ pickAllCheckbox?.addEventListener('change', (e)=> {
 async function buildFormCMBlob(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p','mm','a4');
-    if (typeof doc.autoTable !== 'function') {
-    throw new Error('jspdf-autotable belum dimuat.');}
+  if (typeof doc.autoTable !== 'function') throw new Error('jspdf-autotable belum dimuat.');
 
   const rows = collectRowsForPdf();
   if(rows.length===0) throw new Error('Tidak ada data untuk FORM CM');
@@ -473,7 +498,6 @@ async function buildFormCMBlob(){
 
   const namaTeknisi = (selNama?.value || '').trim();
 
-  // chunk 50 baris (mirip fungsi lama)
   let globalIndex=0;
   const chunkSize=50;
   for(let i=0;i<rows.length;i+=chunkSize){
@@ -516,7 +540,7 @@ async function buildFormCMBlob(){
 }
 
 /* Merge helper (pdf-lib) */
-async function mergePdfBuffers(buffers){ // ArrayBuffer[]
+async function mergePdfBuffers(buffers){
   const { PDFDocument } = window.PDFLib;
   const target = await PDFDocument.create();
   for (const buf of buffers){
@@ -660,9 +684,9 @@ inputTanggalSerah?.addEventListener('change', ()=>{
     td.dataset.iso = iso;
     td.textContent = iso ? formatTanggalSerahForPdf(iso) : '';
   });
-  if (btnGenerate) btnGenerate.disabled = !iso;              // tombol lama
-  if (btnGenCombo) btnGenCombo.disabled = !iso;              // gabungan baru
-  if (btnGenCMOnly) btnGenCMOnly.disabled = !iso;            // CM only baru
+  if (btnGenerate) btnGenerate.disabled = !iso;
+  if (btnGenCombo) btnGenCombo.disabled = !iso;
+  if (btnGenCMOnly) btnGenCMOnly.disabled = !iso;
 });
 
 tbody?.addEventListener('change', (e)=>{
@@ -673,72 +697,67 @@ tbody?.addEventListener('click', async (e) => {
   const btn = e.target.closest('.btn-del'); 
   if (!btn) return;
   if (!confirm('Hapus entri ini dari histori?')) return;
- 
+
   const tr = btn.closest('tr');
   const hashFromRow = tr?.dataset?.hash || '';
   const pathFromRow = tr?.dataset?.path || '';
- 
+
   if (!hashFromRow) {
-    showToast('Gagal menghapus: ID data tidak ditemukan.', 4000, 'warn');
+    showToast?.('Gagal menghapus: ID data tidak ditemukan.', 4000, 'warn');
     return;
   }
- 
+
   try {
-    showSpinner();
-    // 1. Hapus data dari tabel database
+    showSpinner?.();
+    // 1) Hapus row (RLS jaga user scope)
     const { error: dbError } = await supabaseClient.from('pdf_history').delete().eq('content_hash', hashFromRow);
     if (dbError) throw dbError;
- 
-    // 2. Hapus file dari storage (jika ada path-nya)
+
+    // 2) Hapus file storage (kalau ada path)
     if (pathFromRow) {
       const { error: storageError } = await supabaseClient.storage.from('pdf-forms').remove([pathFromRow]);
-      if (storageError) console.warn(`Gagal hapus file di storage: ${storageError.message}`); // Tidak fatal jika gagal
+      if (storageError) console.warn(`Gagal hapus file di storage: ${storageError.message}`);
     }
- 
-    showToast('Entri berhasil dihapus dari server.', 3000, 'success');
+
+    showToast?.('Entri berhasil dihapus dari server.', 3000, 'success');
   } catch (error) {
-    showToast(`Gagal menghapus: ${error.message}`, 4000, 'warn');
+    showToast?.(`Gagal menghapus: ${error.message}`, 4000, 'warn');
   } finally {
-    hideSpinner();
+    hideSpinner?.();
   }
   renderTabel();
 });
 
-
 btnReset?.addEventListener('click', async ()=>{
   if(!confirm('Yakin akan mereset SEMUA histori PDF Anda di server? Tindakan ini tidak bisa dibatalkan.')) return;
-  
-  try {
-    showSpinner();
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) throw new Error('User tidak ditemukan');
 
-    // 1. Ambil daftar semua file milik user saat ini
+  try {
+    showSpinner?.();
+    const user = await getUserOrThrow();
+
+    // 1) Ambil semua file milik user
     const { data: files, error: listError } = await supabaseClient.storage.from('pdf-forms').list(
-      user.id, 
-      { limit: 1000 } // Ambil hingga 1000 file
+      user.id, { limit: 1000 }
     );
     if (listError) throw listError;
 
-    // 2. Hapus semua baris dari tabel pdf_history milik user ini
-    // RLS akan otomatis membatasi ini hanya untuk user_id yang sedang login
-    // Gunakan user.id untuk menghapus semua data milik pengguna yang sedang login.
+    // 2) Hapus baris tabel pdf_history milik user
     const { error: dbError } = await supabaseClient.from('pdf_history').delete().eq('user_id', user.id);
     if (dbError) throw dbError;
 
-    // 3. Hapus semua file dari storage
+    // 3) Hapus semua file di storage
     if (files && files.length > 0) {
       const filePaths = files.map(file => `${user.id}/${file.name}`);
       const { error: storageError } = await supabaseClient.storage.from('pdf-forms').remove(filePaths);
       if (storageError) throw storageError;
     }
 
-    showToast('Semua histori PDF Anda telah direset dari server.', 4000, 'success');
-    renderTabel(); // Render ulang tabel yang kini kosong
+    showToast?.('Semua histori PDF Anda telah direset dari server.', 4000, 'success');
+    renderTabel();
   } catch (error) {
-    showToast(`Gagal mereset: ${error.message}`, 5000, 'warn');
+    showToast?.(`Gagal mereset: ${error.message}`, 5000, 'warn');
   } finally {
-    hideSpinner();
+    hideSpinner?.();
   }
 });
 
@@ -757,11 +776,10 @@ btnGenerate?.addEventListener('click', async ()=>{
     }
   }
 
-  try{ showSpinner(); await generatePdfSerahTerima(); }
+  try{ showSpinner?.(); await generatePdfSerahTerima(); }
   catch(err){ console.error(err); alert('Gagal generate PDF. Pastikan jsPDF, AutoTable, PDF-lib & PDF.js sudah dimuat.'); }
-  finally{ hideSpinner(); }
+  finally{ hideSpinner?.(); }
 });
-
 
 // ========== TOMBOL BARU (jika ada di HTML) ==========
 btnGenCombo?.addEventListener('click', async ()=>{
@@ -778,18 +796,17 @@ btnGenCombo?.addEventListener('click', async ()=>{
     }
   }
 
-  try{ showSpinner(); await generateCombinedSelected(); }
+  try{ showSpinner?.(); await generateCombinedSelected(); }
   catch(err){ console.error(err); alert('Gagal membuat PDF gabungan.'); }
-  finally{ hideSpinner(); }
+  finally{ hideSpinner?.(); }
 });
-
 
 btnGenCMOnly?.addEventListener('click', async ()=>{
   const tanggalInput = inputTanggalSerah?.value || '';
   if(!tanggalInput){ alert('Isi Tanggal Serah Terima dulu.'); return; }
-  try{ showSpinner(); await generateCMOnly(); }
+  try{ showSpinner?.(); await generateCMOnly(); }
   catch(err){ console.error(err); alert('Gagal membuat FORM CM.'); }
-  finally{ hideSpinner(); }
+  finally{ hideSpinner?.(); }
 });
 
 btnGenFilesOnly?.addEventListener('click', async ()=>{
@@ -811,7 +828,7 @@ btnGenFilesOnly?.addEventListener('click', async ()=>{
     }
   }
 
-  try{ showSpinner(); await generateOriginalsOnly(selected); }
+  try{ showSpinner?.(); await generateOriginalsOnly(selected); }
   catch(err){ console.error(err); alert('Gagal menggabungkan PDF asli.'); }
-  finally{ hideSpinner(); }
+  finally{ hideSpinner?.(); }
 });

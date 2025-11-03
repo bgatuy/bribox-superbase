@@ -1,4 +1,4 @@
-// ====== Trackmate ======
+// ====== Trackmate (Supabase-Ready, Meta Reuse, Stable TTD) ======
 
 async function sha256File(file) {
   try {
@@ -29,7 +29,31 @@ const output       = document.getElementById('output');
 const copyBtn      = document.getElementById('copyBtn');
 const lokasiSelect = document.getElementById('inputLokasi');
 
-// === AUTO-CALIBRATE: cari anchor "Diselesaikan Oleh," dan "Nama & Tanda Tangan" ===
+/* ========= Supabase helpers ========= */
+async function getUserOrThrow() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  if (error || !session?.user) throw new Error('User tidak login.');
+  return session.user;
+}
+
+async function getMetaByHash(contentHash) {
+  try {
+    const user = await getUserOrThrow();
+    const { data, error } = await supabaseClient
+      .from('pdf_history')
+      .select('meta')
+      .eq('user_id', user.id)
+      .eq('content_hash', contentHash)
+      .maybeSingle();
+    if (error) return null;
+    return data?.meta || null;
+  } catch {
+    return null;
+  }
+}
+
+/* === AUTO-CALIBRATE: cari anchor "Diselesaikan Oleh," dan "Nama & Tanda Tangan" ===
+   NOTE: sudah DI-PATCH supaya tidak pakai offset mati +95, tapi kunci kolom yang sama */
 async function autoCalibratePdf(buffer){
   const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
   const page = await doc.getPage(1);
@@ -46,7 +70,7 @@ async function autoCalibratePdf(buffer){
 
   const xA = atas.transform[4], yA = atas.transform[5];
 
-  // "Nama & Tanda Tangan" di bawahnya yang se-kolom
+  // "Nama & Tanda Tangan" di bawahnya yang sekolom
   const kandidat = items.filter(it =>
     /Nama\s*&?\s*Tanda\s*&?\s*Tangan/i.test(it.str) && it.transform && it.transform[5] < yA
   );
@@ -58,9 +82,15 @@ async function autoCalibratePdf(buffer){
     if (dx <= 120 && score < best){ best = score; bawah = it; }
   }
 
-  // titik dasar (x,y) untuk nama
-  let x = xA + 95;
-  let y = bawah ? (bawah.transform[5] + 12) : (yA - 32);
+  // PATCHED: titik dasar (x,y) untuk nama — kunci kolom, hindari angka paten
+  let x;
+  if (bawah) {
+    const xB = bawah.transform[4];
+    x = (Math.abs(xB - xA) <= 120) ? (xA + (xB - xA) * 0.5) : (xA + 90);
+  } else {
+    x = xA + 90;
+  }
+  let y = bawah ? (bawah.transform[5] + 10) : (yA - 30);
 
   // (opsional) info baris UK & SOLUSI – bisa dipakai nanti, tidak wajib
   const first = r => items.find(it => r.test(it.str));
@@ -193,25 +223,19 @@ fileInput?.addEventListener('change', async function () {
       merk            = clean(rawText.match(/Merk\s*:\s*(.+)/)?.[1]) || '-';
       type            = clean(rawText.match(/Type\s*:\s*(.+)/)?.[1]) || '-';
       (() => {
-      // berhenti sebelum label berikutnya
-      const stops = [
-        'Jabatan','Jenis Perangkat','Serial Number','SN','Merk','Type',
-        'Status','STATUS','Tanggal','Nama','Tanda','Cap','Progress',
-        'Unit Kerja','Kantor Cabang'
-      ];
-      // dukung "Pelapor :" ATAU "PIC :"
-      const block = extractFlexibleBlock(lines, '(?:Pelapor|PIC)', stops) || '';
+        const stops = [
+          'Jabatan','Jenis Perangkat','Serial Number','SN','Merk','Type',
+          'Status','STATUS','Tanggal','Nama','Tanda','Cap','Progress',
+          'Unit Kerja','Kantor Cabang'
+        ];
+        const block = extractFlexibleBlock(lines, '(?:Pelapor|PIC)', stops) || '';
+        const m = block.match(/^\s*([^()\[\]\n]+?)\s*(?:[\(\[]\s*([^()\[\]]+?)\s*[\)\]])?\s*$/);
+        const name = clean(m ? m[1] : block);
+        const jab  = clean(m && m[2] ? m[2] : extractFlexibleBlock(lines, 'Jabatan', stops) || '');
+        pic = jab ? `${name} (${jab})` : (name || '-');
+      })();
 
-      // Format yang didukung: "Nama" atau "Nama (Jabatan)"
-      const m = block.match(/^\s*([^()\[\]\n]+?)\s*(?:[\(\[]\s*([^()\[\]]+?)\s*[\)\]])?\s*$/);
-      const name = clean(m ? m[1] : block);
-      // kalau ada label "Jabatan :" terpisah, angkut juga
-      const jab  = clean(m && m[2] ? m[2] : extractFlexibleBlock(lines, 'Jabatan', stops) || '');
-
-      pic = jab ? `${name} (${jab})` : (name || '-');
-    })();
-
-      status          = clean(rawText.match(/STATUS PEKERJAAN\s*:\s*(.+)/)?.[1]) || '-';
+      status = clean(rawText.match(/STATUS PEKERJAAN\s*:\s*(.+)/)?.[1]) || '-';
 
       updateOutput();
     } catch (err) {
@@ -259,7 +283,7 @@ Status : ${status}`;
 copyBtn?.addEventListener("click", async () => {
   showSpinner?.();
   try {
-    // 1. Copy teks ke clipboard
+    // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
     if (copyBtn) {
@@ -267,47 +291,52 @@ copyBtn?.addEventListener("click", async () => {
       setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
     }
 
-    // 2. Validasi file
+    // 2) Validasi file
     const file = fileInput?.files?.[0];
-    if (!file) { showToast("Tidak ada file PDF yang dipilih.", 3500, "warn"); return; }
+    if (!file) { showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn"); return; }
 
-    // 3. Persiapan data untuk Supabase
+    // 3) Persiapan data untuk Supabase
     const contentHash = await sha256File(file);
-    // Gunakan getSession() yang lebih andal untuk mendapatkan user ID
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    if (sessionError || !session?.user) throw new Error('User tidak login.');
-    const user = session.user;
+    const user = await getUserOrThrow();
     const filePath = `${user.id}/${contentHash}.pdf`;
 
-    // 4. Upload file ke Supabase Storage
-    const { error: uploadError } = await supabaseClient.storage
-      .from('pdf-forms')
+    // 4) Upload file ke Supabase Storage (idempotent by path)
+    const { error: uploadError } = await supabaseClient
+      .storage.from('pdf-forms')
       .upload(filePath, file, { upsert: true });
     if (uploadError) throw uploadError;
 
-    // 5. Ekstrak metadata posisi TTD (INI BAGIAN PENTING YANG DIKEMBALIKAN)
-    const meta = await autoCalibratePdf(await file.arrayBuffer()).catch(err => {
-      console.warn("Gagal auto-calibrate PDF:", err);
-      return null; // Tetap lanjutkan walau kalibrasi gagal
-    });
+    // 5) META: coba reuse dulu kalau hash ini sudah pernah ada
+    let meta = await getMetaByHash(contentHash);
+    if (!meta) {
+      // Kalau belum ada → kalibrasi baru (pakai rumus patched)
+      meta = await autoCalibratePdf(await file.arrayBuffer()).catch(err => {
+        console.warn("Gagal auto-calibrate PDF:", err);
+        return null;
+      });
+    }
 
-    // 6. Simpan semua info ke database Supabase
+    // 6) Simpan semua info ke database Supabase (COMPOSITE KEY!)
     const namaUkerBersih = stripLeadingColon(unitKerja) || "-";
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
-      content_hash: contentHash,
+    const payload = {
+      user_id: user.id,                  // <— WAJIB, composite
+      content_hash: contentHash,         // <— WAJIB, composite
       nama_uker: namaUkerBersih,
-      tanggal_pekerjaan: tanggalRaw,
+      tanggal_pekerjaan: tanggalRaw || null,
       file_name: file.name,
       storage_path: filePath,
       size_bytes: file.size,
-      meta: meta, // Simpan metadata posisi TTD
-    }, { onConflict: 'content_hash' });
+      meta: meta || null                 // bisa null, fallback di sisi generator
+    };
+    const { error: dbError } = await supabaseClient
+      .from('pdf_history')
+      .upsert(payload, { onConflict: 'user_id,content_hash' });
     if (dbError) throw dbError;
 
-    showToast("Berhasil disimpan ke server.", 3000, "success");
+    showToast?.("Berhasil disimpan ke server.", 3000, "success");
   } catch (err) {
     console.error("Copy handler error:", err);
-    showToast(`Error: ${err?.message || err}`, 4500, "warn");
+    showToast?.(`Error: ${err?.message || err}`, 4500, "warn");
   } finally {
     hideSpinner?.();
   }
