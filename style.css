@@ -405,7 +405,12 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
 ========================= */
 @media (max-width:768px){
   .dashboard{ flex-direction:column; }
-  .main{ padding:1rem; }
+  :root{ --bn-h:64px; } /* kalau belum ada */
+
+  .main{
+    padding:1rem; 
+    padding-bottom: calc(var(--bn-h) + env(safe-area-inset-bottom) + 16px) !important;
+  }
   .dashboard-header{ gap:.75rem; margin-bottom:1rem; }
 
   /* judul pakai grid (override desktop absolute) */
