@@ -102,7 +102,7 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
   position: absolute;
   right: 1rem;
   top: 20%;
-  transform: translateY(-10%);
+  transform: translateY(-5%);
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   color: #b91c1c;

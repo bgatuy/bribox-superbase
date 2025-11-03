@@ -11,19 +11,22 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ==================================================
 // INI ADALAH SCRIPT "PENJAGA GERBANG"
 // ==================================================
-// Cek jika kita TIDAK sedang di halaman login
-if (!window.location.pathname.endsWith('login.html')) {
+// Cek jika kita TIDAK sedang di halaman login (yaitu bukan di index.html atau /)
+const path = window.location.pathname;
+if (!path.endsWith('/') && !path.endsWith('/index.html')) {
     // Menggunakan onAuthStateChange untuk menunggu status login siap.
     // Ini akan berjalan sekali saat halaman dimuat.
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
         // Berhenti mendengarkan setelah pengecekan pertama selesai untuk efisiensi.
         subscription.unsubscribe();
 
-        // Jika event adalah INITIAL_SESSION dan tidak ada sesi,
-        // artinya pengguna benar-benar belum login.
+        // Jika tidak ada sesi (pengguna belum login), tendang ke halaman login.
         if (event === 'INITIAL_SESSION' && !session) {
-            // Tendang ke halaman login.
-            window.location.href = '/login.html'; // FIX: Gunakan path absolut
+            window.location.href = '/index.html'; // Arahkan ke halaman login
+        } else if (session) {
+            // Jika ada sesi, tampilkan konten halaman yang mungkin tersembunyi
+            const dashboard = document.querySelector('.dashboard');
+            if (dashboard) dashboard.style.visibility = 'visible';
         }
     });
 }

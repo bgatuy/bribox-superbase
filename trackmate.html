@@ -1,35 +1,37 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BRIBOX KANPUS</title>
+  <title>Trackmate - BRIBOX KANPUS</title>
   <link rel="icon" type="image/png" href="./favicon.png" />
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 </head>
-  <body data-page="appsheet">
+<body data-page="trackmate">
   <div class="dashboard">
     <aside class="sidebar">
       <h2 class="logo">
-      <img src="favicon.png" alt="Logo" class="logo-icon" />
-       BRIBOX KANPUS</h2>
-       
+        <img src="favicon.png" alt="Logo" class="logo-icon" />
+        BRIBOX KANPUS
+      </h2>
+
       <nav>
-        <a href="trackmate.html"><span class="material-icons" aria-hidden="true">settings</span> Trackmate</a>
-        <a href="appsheet.html" class="active"><span class="material-icons" aria-hidden="true">apps</span> AppSheet</a>
+        <a href="trackmate.html" class="active"><span class="material-icons" aria-hidden="true">settings</span> Trackmate</a>
+        <a href="appsheet.html"><span class="material-icons" aria-hidden="true">apps</span> AppSheet</a>
         <a href="formserahterima.html"><span class="material-icons" aria-hidden="true">handshake</span> Form Serah Terima</a>
+
         <!-- Parent collapsible Monthly Report -->
         <button class="nav-group" type="button"
-        aria-controls="nav-monthly" aria-expanded="false"
-        onclick="
-        const t=this, m=document.getElementById('nav-monthly');
-        const ex=t.getAttribute('aria-expanded')==='true';
-        t.setAttribute('aria-expanded', String(!ex)); 
-        m.hidden=ex;
-      "><span class="material-icons" aria-hidden="true">event_note</span> Monthly Report</button>
+          aria-controls="nav-monthly" aria-expanded="false"
+          onclick="
+            const t=this, m=document.getElementById('nav-monthly');
+            const ex=t.getAttribute('aria-expanded')==='true';
+            t.setAttribute('aria-expanded', String(!ex));
+            m.hidden=ex;
+          "><span class="material-icons" aria-hidden="true">event_note</span> Monthly Report</button>
 
-      <!-- Submenu Monthly -->
+        <!-- Submenu Monthly -->
         <div id="nav-monthly" class="submenu" hidden>
           <a href="monthly-report/monthly-form.html">Monthly Form</a>
           <a href="monthly-report/monthly-data.html">Monthly Data</a>
@@ -40,10 +42,11 @@
       </div>
     </aside>
 
+    <!-- Main -->
     <main class="main">
       <header class="dashboard-header">
-        <button class="sidebar-toggle-btn">☰</button>
-        <h1 class="page-subtitle">AppSheet</h1>
+        <button class="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">☰</button>
+        <h1 class="page-subtitle">Trackmate</h1>
         <button id="btnLogout" class="header-logout-btn" title="Logout">
           <span class="material-icons">logout</span>
         </button>
@@ -51,11 +54,12 @@
 
       <section class="card">
         <h3>Upload Form PDF Kalian Disini Lalu Pilih Lokasi Divisi!</h3>
-        
+
         <label for="pdfFile" class="upload-label">
-          <span class="material-icons">picture_as_pdf</span> Pilih File PDF
+          <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+          Pilih File PDF
         </label>
-        <input type="file" id="pdfFile" accept="application/pdf"/>
+        <input type="file" id="pdfFile" accept="application/pdf" />
 
         <div class="form-group">
           <label for="inputLokasi">Pilih Lokasi Divisi :</label>
@@ -135,11 +139,11 @@
             <option value="GTI Ragunan Lt. 6">GTI Ragunan Lt. 6</option>
             <option value="GTI Ragunan Lt. 7">GTI Ragunan Lt. 7</option>
             <option value="GTI Ragunan Lt. 8">GTI Ragunan Lt. 8</option>
-        </select>
-      </div>
+          </select>
+        </div>
 
         <pre id="output" class="output-preview">Text akan muncul di sini...</pre>
-        <button id="copyBtn" class="primary">Copy</button>
+        <button id="copyBtn" class="btn-copy primary" type="button">Copy</button>
       </section>
     </main>
   </div>
@@ -147,13 +151,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     if (window.pdfjsLib && (!pdfjsLib.GlobalWorkerOptions.workerSrc || pdfjsLib.GlobalWorkerOptions.workerSrc === '')) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc ='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';}
+      pdfjsLib.GlobalWorkerOptions.workerSrc ='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    }
   </script>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
   <script src="utils.js"></script>
-  <script src="appsheet.js"></script>
+  <script src="trackmate.js"></script>
 
   <!-- ===== Bottom Navigation (muncul hanya di mobile via CSS) ===== -->
   <nav class="bottom-nav" role="navigation" aria-label="Main">
@@ -178,6 +183,7 @@
   <span class="material-icons" aria-hidden="true">event_note</span>
   <span class="bn-txt">Monthly Report</span>
 </button>
+</nav>
 
 <!-- Submenu yang muncul di atas bottom-nav (khusus Mobile) -->
 <div class="bn-submenu" id="bn-submonthly" hidden>

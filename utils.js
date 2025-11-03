@@ -70,14 +70,16 @@ function showToast(message, duration = 3000, variant = "success") {
 /** Inisialisasi fungsionalitas sidebar */
 function initSidebar() {
   const sidebar = document.querySelector('.sidebar');
+  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
   const overlay = document.getElementById('sidebarOverlay') || document.querySelector('.sidebar-overlay');
   const sidebarLinks = document.querySelectorAll('.sidebar a');
 
   function openSidebar() { sidebar.classList.add('visible'); overlay?.classList.add('show'); document.body.style.overflow = 'hidden'; }
   function closeSidebar() { sidebar.classList.remove('visible'); overlay?.classList.remove('show'); document.body.style.overflow = ''; }
   function toggleSidebar() { sidebar.classList.contains('visible') ? closeSidebar() : openSidebar(); }
-  window.toggleSidebar = toggleSidebar;
 
+  // Hubungkan tombol toggle
+  toggleBtn?.addEventListener('click', toggleSidebar);
   overlay?.addEventListener('click', closeSidebar);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sidebar.classList.contains('visible')) closeSidebar(); });
   sidebarLinks.forEach(a => a.addEventListener('click', closeSidebar));
@@ -88,6 +90,7 @@ function initSidebar() {
  */
 function initLogoutButton() {
   const headerLogoutBtn = document.getElementById('btnLogout');
+  const mobileLogoutBtn = document.getElementById('btnLogoutMobile');
 
   // Fungsi logout bersama
   const handleLogout = async () => {
@@ -95,12 +98,17 @@ function initLogoutButton() {
     if (typeof supabaseClient !== 'undefined') {
       await supabaseClient.auth.signOut();
     }
-    window.location.href = '/login.html'; // FIX: Gunakan path absolut
+    window.location.href = '/trackmate.html'; // Arahkan ke halaman login baru
   };
 
   // Tambahkan event listener ke tombol logout di header
   if (headerLogoutBtn) {
     headerLogoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // Tambahkan event listener ke tombol logout di navigasi bawah (mobile)
+  if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener('click', handleLogout);
   }
 }
 

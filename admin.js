@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Pastikan supabaseClient sudah ada
   if (typeof supabaseClient === 'undefined') {
     alert('Koneksi ke Supabase gagal. Halaman tidak dapat dimuat.');
-    window.location.href = '/index.html';
+    window.location.href = 'trackmate.html'; // Konsisten pakai path relatif
     return;
   }
 
@@ -13,20 +13,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (error) {
     alert(`Gagal memverifikasi akses admin: ${error.message}`);
-    window.location.href = '/index.html';
+    window.location.href = 'trackmate.html';
     return;
   }
 
   if (!isAdmin) {
     // Jika bukan admin, tendang ke halaman utama
     alert('Akses ditolak. Anda bukan admin.');
-    window.location.href = '/index.html'; // FIX: Gunakan path absolut
+    window.location.href = 'trackmate.html';
     return;
   }
 
   // Inisialisasi fungsionalitas umum
   if (typeof initSidebar === 'function') initSidebar();
-  if (typeof initAdminFeatures === 'function') initAdminFeatures(); // Tampilkan link admin di sidebar
   if (typeof initLogoutButton === 'function') initLogoutButton();
 
   // 2. Muat data statistik
