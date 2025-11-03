@@ -101,7 +101,7 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
 .header-logout-btn {
   position: absolute;
   right: 1rem;
-  top: 20%;
+  top: 15%;
   transform: translateY(-5%);
   background: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -358,7 +358,7 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
 
   /* Spesifikasikan ukuran ikon logout di mobile agar tidak terlalu besar */
   .bn-item.bn-logout .material-icons {
-    font-size: 24px; /* Ukuran yang pas untuk tombol logout mobile */
+    font-size: 20px; /* Ukuran yang pas untuk tombol logout mobile */
   }
 
 
