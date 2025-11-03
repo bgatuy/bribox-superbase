@@ -273,7 +273,7 @@ async function findAnchorsDiselesaikan(buffer){
     }
 
     // PATCHED: kunci kolom (hindari angka paten +95)
-    let x = xA + 92;
+    let x = xA + 95;
     let y = bawah ? (bawah.transform[5] + 12) : (yA - 32);
 
     anchors.push({ x, y });
@@ -391,7 +391,7 @@ async function generatePdfSerahTerima(){
           }
         }
         // Geser global (koreksi kecil)
-        const GLOBAL_X_BIAS_PT = 0;
+        const GLOBAL_X_BIAS_PT = -55;
         const GLOBAL_Y_BIAS_PT = 3;
         x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT; // x tidak lagi bergeser
 
@@ -643,7 +643,7 @@ async function generateOriginalsOnly(selected){
         x = anchors[i].x; y = anchors[i].y;
       }
 
-      // bias global (sesuai fungsi lain)
+      x += -55;
       y += 3; // Hanya terapkan bias vertikal
 
       // gambar nama kalau ada
