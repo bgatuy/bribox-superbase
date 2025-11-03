@@ -397,9 +397,9 @@ async function generatePdfSerahTerima(){
           }
         }
         // Geser global (koreksi kecil)
-        const GLOBAL_X_BIAS_PT = -55;
+        const GLOBAL_X_BIAS_PT = 0; // FIX: Dihapus pergeseran ke kiri
         const GLOBAL_Y_BIAS_PT = 3;
-        x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT;
+        x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT; // x tidak lagi bergeser
 
         if (DEBUG_SHOW_MARKER) {
           page.drawRectangle({ x:x-3, y:y-3, width:6, height:6, color: PDFLib.rgb(1,0.5,0) });
@@ -591,7 +591,7 @@ async function generateCombinedSelected(){
       if (meta && typeof meta.x==='number' && typeof meta.y==='number'){ x = meta.x + (meta.dx||0); y = meta.y + (meta.dy||0); }
       else if (anchors[i]){ x = anchors[i].x; y = anchors[i].y; }
 
-      x += -55; y += 3; // bias kecil
+      y += 3; // bias kecil (hanya vertikal)
       if (DEBUG_SHOW_MARKER) page.drawRectangle({ x:x-3, y:y-3, width:6, height:6, color: rgb(1,0.5,0) });
 
       if (namaDiselesaikan){
@@ -650,8 +650,7 @@ async function generateOriginalsOnly(selected){
       }
 
       // bias global (sesuai fungsi lain)
-      x += -55;
-      y += 3;
+      y += 3; // Hanya terapkan bias vertikal
 
       // gambar nama kalau ada
       if (namaDiselesaikan){
