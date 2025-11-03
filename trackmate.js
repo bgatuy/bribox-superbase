@@ -83,14 +83,8 @@ async function autoCalibratePdf(buffer){
   }
 
   // PATCHED: titik dasar (x,y) untuk nama — kunci kolom, hindari angka paten
-  let x;
-  if (bawah) {
-    const xB = bawah.transform[4];
-    x = (Math.abs(xB - xA) <= 120) ? (xA + (xB - xA) * 0.5) : (xA + 90);
-  } else {
-    x = xA + 90;
-  }
-  let y = bawah ? (bawah.transform[5] + 10) : (yA - 30);
+  let x = xA + 95;
+  let y = bawah ? (bawah.transform[5] + 12) : (yA - 32); // Bagian Y biarkan saja
 
   // (opsional) info baris UK & SOLUSI – bisa dipakai nanti, tidak wajib
   const first = r => items.find(it => r.test(it.str));

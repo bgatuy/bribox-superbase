@@ -273,14 +273,8 @@ async function findAnchorsDiselesaikan(buffer){
     }
 
     // PATCHED: kunci kolom (hindari angka paten +95)
-    let x;
-    if (bawah) {
-      const xB = bawah.transform[4];
-      x = (Math.abs(xB - xA) <= 120) ? (xA + (xB - xA) * 0.5) : (xA + 90);
-    } else {
-      x = xA + 90;
-    }
-    let y = bawah ? (bawah.transform[5] + 10) : (yA - 30);
+    let x = xA + 95;
+    let y = bawah ? (bawah.transform[5] + 12) : (yA - 32); // Bagian Y biarkan saja
 
     anchors.push({ x, y });
   }
@@ -397,7 +391,7 @@ async function generatePdfSerahTerima(){
           }
         }
         // Geser global (koreksi kecil)
-        const GLOBAL_X_BIAS_PT = 0; // FIX: Dihapus pergeseran ke kiri
+        const GLOBAL_X_BIAS_PT = -55; // FIX: Dihapus pergeseran ke kiri
         const GLOBAL_Y_BIAS_PT = 3;
         x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT; // x tidak lagi bergeser
 
