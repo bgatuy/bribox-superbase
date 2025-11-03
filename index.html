@@ -29,7 +29,7 @@
             const ex=t.getAttribute('aria-expanded')==='true';
             t.setAttribute('aria-expanded', String(!ex));
             m.hidden=ex;
-          "><span class="material-icons" aria-hidden="true">event_note</span>Monthly Report</button>
+          "><span class="material-icons" aria-hidden="true">event_note</span> Monthly Report</button>
 
         <!-- Submenu Monthly -->
         <div id="nav-monthly" class="submenu" hidden>
@@ -45,10 +45,10 @@
     <!-- Main -->
     <main class="main">
       <header class="dashboard-header">
-        <button class="sidebar-toggle-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
+        <button class="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">☰</button>
         <h1 class="page-subtitle">Trackmate</h1>
-        <button id="btnLogoutHeader" class="header-logout-btn">
-          <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">logout</span> Logout
+        <button id="btnLogout" class="header-logout-btn" title="Logout">
+          <span class="material-icons">logout</span>
         </button>
       </header>
 
@@ -147,7 +147,7 @@
       </section>
     </main>
   </div>
-
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
     if (window.pdfjsLib && (!pdfjsLib.GlobalWorkerOptions.workerSrc || pdfjsLib.GlobalWorkerOptions.workerSrc === '')) {

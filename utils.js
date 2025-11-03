@@ -87,7 +87,7 @@ function initSidebar() {
  * Menambahkan tombol Logout ke sidebar dan menangani fungsinya.
  */
 function initLogoutButton() {
-  const headerLogoutBtn = document.getElementById('btnLogoutHeader');
+  const headerLogoutBtn = document.getElementById('btnLogout');
 
   // Fungsi logout bersama
   const handleLogout = async () => {

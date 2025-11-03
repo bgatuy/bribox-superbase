@@ -29,9 +29,7 @@
             const ex=t.getAttribute('aria-expanded')==='true';
             t.setAttribute('aria-expanded', String(!ex)); 
             m.hidden=ex;
-          ">
-          <span class="material-icons" aria-hidden="true">event_note</span> Monthly Report
-        </button>
+          "><span class="material-icons" aria-hidden="true">event_note</span> Monthly Report</button>
 
         <!-- Submenu Monthly -->
         <div id="nav-monthly" class="submenu" hidden>
@@ -46,8 +44,11 @@
 
     <main class="main">
       <header class="dashboard-header">
-        <button class="sidebar-toggle-btn" onclick="toggleSidebar()">☰</button>
+        <button class="sidebar-toggle-btn">☰</button>
         <h1 class="page-subtitle">Form Serah Terima</h1>
+        <button id="btnLogout" class="header-logout-btn" title="Logout">
+          <span class="material-icons">logout</span>
+        </button>
       </header>
 
       <div class="controls-bar">

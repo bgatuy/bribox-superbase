@@ -15,7 +15,7 @@ const btnGenCMOnly    = document.getElementById('btnGenCMOnly');
 const btnGenFilesOnly = document.getElementById('btnGenFilesOnly');
 
 // Master checkbox (opsional – jika kamu tambah di header)
-const pickAll = document.getElementById('pickAll');
+const pickAllCheckbox = document.getElementById('pickAll');
 
 // Debug flags (boleh dibuat false kalau sudah stabil)
 const DEBUG_SHOW_MARKER = false;   // titik oranye
@@ -138,7 +138,7 @@ async function renderTabel(){
     .map((it,i)=>({ ...it, _no: i+1, nama_uker: stripLeadingColon(it.nama_uker) }));
 
   // cek apakah header punya kolom Pilih (master checkbox)
-  const headerHasPick = !!document.getElementById('pickAll');
+  const headerHasPick = !!pickAllCheckbox;
 
   tbody.innerHTML = data.map((item, idx)=>{
     const iso = inputTanggalSerah?.value || '';
@@ -444,16 +444,16 @@ function markMissingRows(missing){
 
 // Sinkron master checkbox
 function syncPickAllState(){
-  if (!pickAll) return;
+  if (!pickAllCheckbox) return;
   const cbs = Array.from(document.querySelectorAll('#historiBody input.pick'));
-  if (!cbs.length){ pickAll.checked=false; pickAll.indeterminate=false; return; }
+  if (!cbs.length){ pickAllCheckbox.checked=false; pickAllCheckbox.indeterminate=false; return; }
   const allChecked = cbs.every(cb => cb.checked);
   const anyChecked = cbs.some(cb => cb.checked);
-  pickAll.checked = allChecked;
-  pickAll.indeterminate = anyChecked && !allChecked;
+  pickAllCheckbox.checked = allChecked;
+  pickAllCheckbox.indeterminate = anyChecked && !allChecked;
 }
-pickAll?.addEventListener('change', ()=> {
-  document.querySelectorAll('#historiBody input.pick').forEach(cb => cb.checked = pickAll.checked);
+pickAllCheckbox?.addEventListener('change', (e)=> {
+  document.querySelectorAll('#historiBody input.pick').forEach(cb => cb.checked = e.target.checked);
 });
 
 // jsPDF: bangun FORM CM saja

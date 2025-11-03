@@ -100,16 +100,21 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
 }
 .header-logout-btn {
   position: absolute;
-  right: 1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 1rem;
+  top: 20%;
+  transform: translateY(-10%);
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   color: #b91c1c;
-  padding: 6px 12px;
+  padding: 7px 10px;
   border-radius: 8px;
-  font-size: 12px;
 }
+/* Atur ukuran ikon di dalam tombol logout */
+.header-logout-btn .material-icons {
+  font-size: 25px; /* Ubah nilai ini untuk memperbesar/memperkecil ikon */
+  vertical-align: middle; /* Memastikan ikon tetap di tengah secara vertikal */
+}
+
 
 /* =========================
    CREDIT (sidebar & header)
