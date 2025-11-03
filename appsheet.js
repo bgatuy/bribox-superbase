@@ -259,15 +259,17 @@ copyBtn?.addEventListener('click', async () => {
 
     // 6. Simpan semua info ke database
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
+    const payload = {
+      user_id: user.id, // <-- TAMBAHKAN INI
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: currentTanggalRaw,
       file_name: currentFile.name,
       storage_path: filePath,
       size_bytes: currentFile.size,
-      meta: meta, // Simpan metadata posisi TTD
-    }, { onConflict: 'content_hash' });
+      meta: meta,
+    };
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, { onConflict: 'user_id,content_hash' }); // <-- PERBAIKI INI
     if (dbError) throw dbError;
 
     showToast("Berhasil disimpan ke server.", 3000, "success");
