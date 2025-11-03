@@ -239,8 +239,10 @@ copyBtn?.addEventListener('click', async () => {
 
     // 3. Persiapan data untuk Supabase
     const contentHash = await sha256File(currentFile);
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) throw new Error('User tidak login.');
+    // Gunakan getSession() yang lebih andal untuk mendapatkan user ID
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session?.user) throw new Error('User tidak login.');
+    const user = session.user;
     const filePath = `${user.id}/${contentHash}.pdf`;
 
     // 4. Upload file ke Supabase Storage

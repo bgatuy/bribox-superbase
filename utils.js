@@ -98,7 +98,7 @@ function initLogoutButton() {
     if (typeof supabaseClient !== 'undefined') {
       await supabaseClient.auth.signOut();
     }
-    window.location.href = '/trackmate.html'; // Arahkan ke halaman login baru
+    window.location.href = '/index.html'; // FIX: Arahkan ke halaman login (index.html)
   };
 
   // Tambahkan event listener ke tombol logout di header
