@@ -356,6 +356,12 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
   .bn-item .material-icons{ font-size:22px; line-height:1; }
   .bn-item:active{ filter:brightness(.92); transform:translateY(1px); }
 
+  /* Spesifikasikan ukuran ikon logout di mobile agar tidak terlalu besar */
+  .bn-item.bn-logout .material-icons {
+    font-size: 24px; /* Ukuran yang pas untuk tombol logout mobile */
+  }
+
+
   .bn-item.bn-monthly-trigger{
     appearance:none; -webkit-appearance:none; background:transparent; border:0; padding:0; margin:0;
     width:100%; height:100%; cursor:pointer;
