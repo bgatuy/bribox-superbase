@@ -391,7 +391,7 @@ async function generatePdfSerahTerima(){
           }
         }
         // Geser global (koreksi kecil)
-        const GLOBAL_X_BIAS_PT = 0; // FIX: Dihapus pergeseran ke kiri
+        const GLOBAL_X_BIAS_PT = -75;
         const GLOBAL_Y_BIAS_PT = 3;
         x += GLOBAL_X_BIAS_PT; y += GLOBAL_Y_BIAS_PT; // x tidak lagi bergeser
 
