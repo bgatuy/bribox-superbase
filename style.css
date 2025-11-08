@@ -352,10 +352,6 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
     padding-bottom:env(safe-area-inset-bottom);
     -webkit-tap-highlight-color:transparent;
   }
-  /* Sembunyikan tombol admin secara default untuk semua pengguna */
-  .bn-admin {
-    display: none;
-  }
 
   .bn-item{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
