@@ -10,7 +10,7 @@
 
     if (typeof initSidebar === 'function') initSidebar();
     if (typeof initAdminFeatures === 'function') initAdminFeatures();
-    if (typeof initLogoutButton === 'function') initLogoutButton();
+    if (typeof initLogoutButton === 'function') initLogoutButton(); // <-- FUNGSI LOGOUT DIPANGGIL
     applyFilters();
   });
 
@@ -71,6 +71,8 @@
     // urut input ASC (tanggal, lalu createdAt)
     rows.sort((a,b)=>{ const ad=a.date||"", bd=b.date||""; if(ad!==bd) return ad.localeCompare(bd); return (a.created_at||"").localeCompare(b.created_at||""); });
 
+    // simpan snapshot rows saat ini untuk keperluan edit inline
+    try { window.__monthlyRows = Array.isArray(rows) ? rows.slice() : []; } catch {}
     renderTable(rows);
     if (empty) empty.style.display = rows.length ? "none" : "block";
     if (typeof tblCap !== 'undefined' && tblCap) tblCap.textContent = `${rows.length} entri ditampilkan`;
@@ -109,7 +111,16 @@
           <td class="num">${r.jarak_km||0}</td>
           <td>${esc(waktuTempuhStr)}</td>
           <td>${esc(r.keterangan||"")}</td>
-          <td><button class="btn-del" data-id="${r.id}">Hapus</button></td>
+          <td class="aksi">
+            <div class="btn-group">
+              <button class="btn-edit" data-id="${r.id}" title="Edit" aria-label="Edit">
+                <span class="material-icons" aria-hidden="true">edit</span>
+              </button>
+              <button class="btn-del btn-monthly-del" data-id="${r.id}" title="Hapus" aria-label="Hapus">
+                <span class="material-icons" aria-hidden="true">delete</span>
+              </button>
+            </div>
+          </td>
         </tr>`;
     }).join("");
 
@@ -129,6 +140,16 @@
       });
     });
 
+    // klik tombol edit: arahkan ke form dengan mode edit
+    tbody.querySelectorAll('.btn-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        if(!id) return;
+        const m = encodeURIComponent(String(month||''));
+        window.location.href = `monthly-form.html?edit=${encodeURIComponent(id)}&month=${m}`;
+      });
+    });
+
     // opsional: tetap dukung dbl-click baris
     tbody.querySelectorAll("tr").forEach(tr=>{
       tr.addEventListener("dblclick", async () => {
@@ -143,6 +164,152 @@
           applyFilters();
         }
       });
+    });
+  }
+
+  // ===== Helpers untuk edit inline
+  function timeToInputValue(v){
+    if(!v) return '';
+    const m = String(v).match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return '';
+    return `${pad(m[1])}:${m[2]}`;
+  }
+  function parseTimeToMin(t){
+    if(!t) return null;
+    const [h,m] = String(t).split(':').map(Number);
+    if(Number.isNaN(h)||Number.isNaN(m)) return null;
+    return h*60+m;
+  }
+  function minToTimeStr(m){
+    const mm = Math.max(0, Math.round(m||0)) % 1440;
+    const h = Math.floor(mm/60), s = mm%60;
+    return `${pad(h)}:${pad(s)}`;
+  }
+  function toHHMM(m){
+    m = Math.max(0, Math.round(m||0));
+    const h = Math.floor(m/60), mm = m%60;
+    return `${h}:${pad(mm)}`;
+  }
+  function formatTanggalLong(dateStr){
+    try { return new Date(dateStr+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long', day:'2-digit', month:'long', year:'numeric'}); }
+    catch { return dateStr; }
+  }
+
+  function enterEditMode(tr, r){
+    const id = r.id;
+    const durasiPenyelesaianStr = r.durasi_penyelesaian_min ? `${Math.floor(r.durasi_penyelesaian_min/60)}:${pad(r.durasi_penyelesaian_min%60)}` : '0:00';
+    const waktuTempuhStr = r.waktu_tempuh_min ? `${Math.floor(r.waktu_tempuh_min/60)}:${pad(r.waktu_tempuh_min%60)}` : '0:00';
+
+    tr.innerHTML = `
+      <td><input class="inp-date" type="date" value="${esc(r.date||'')}"></td>
+      <td class="col-teknisi"><input class="inp-teknisi" value="${esc(r.teknisi||'')}"></td>
+      <td><input class="inp-lok-dari" value="${esc(r.lokasi_dari||'')}"></td>
+      <td><input class="inp-lok-ke" value="${esc(r.lokasi_ke||'')}"></td>
+      <td>
+        <select class="inp-jenis">
+          <option ${r.jenis==='Corrective Maintenance'?'selected':''} value="Corrective Maintenance">Corrective Maintenance</option>
+          <option ${r.jenis==='Preventive Maintenance'?'selected':''} value="Preventive Maintenance">Preventive Maintenance</option>
+          <option ${r.jenis==='Pekerjaan Tambahan'?'selected':''} value="Pekerjaan Tambahan">Pekerjaan Tambahan</option>
+        </select>
+      </td>
+      <td><input class="inp-detail" value="${esc(r.detail||'')}"></td>
+      <td>
+        <select class="inp-status">
+          <option ${r.status==='Done'?'selected':''} value="Done">Done</option>
+          <option ${r.status==='Pending'?'selected':''} value="Pending">Pending</option>
+        </select>
+      </td>
+      <td><input class="inp-jam-masuk" type="time" step="60" value="${esc(timeToInputValue(r.jam_masuk))}" readonly></td>
+      <td><input class="inp-jam-berangkat" type="time" step="60" value="${esc(timeToInputValue(r.jam_berangkat))}"></td>
+      <td><input class="inp-jam-tiba" type="time" step="60" value="${esc(timeToInputValue(r.jam_tiba))}"></td>
+      <td><input class="inp-jam-mulai" type="time" step="60" value="${esc(timeToInputValue(r.jam_mulai))}"></td>
+      <td><input class="inp-jam-selesai" type="time" step="60" value="${esc(timeToInputValue(r.jam_selesai))}"></td>
+      <td><span class="out-durasi">${esc(durasiPenyelesaianStr)}</span></td>
+      <td class="num"><input class="inp-jarak" type="number" step="0.1" value="${esc(r.jarak_km||0)}"></td>
+      <td><span class="out-tempuh">${esc(waktuTempuhStr)}</span></td>
+      <td><input class="inp-ket" value="${esc(r.keterangan||'')}"></td>
+      <td>
+        <button class="btn-save" data-id="${id}">Simpan</button>
+        <button class="btn-cancel">Batal</button>
+      </td>
+    `;
+
+    const q = (sel) => tr.querySelector(sel);
+    const recompute = () => {
+      const berangkat = parseTimeToMin(q('.inp-jam-berangkat').value);
+      const tiba      = parseTimeToMin(q('.inp-jam-tiba').value);
+      const mulai     = parseTimeToMin(q('.inp-jam-mulai').value);
+      const selesai   = parseTimeToMin(q('.inp-jam-selesai').value);
+
+      if(berangkat!=null){
+        const masuk = (berangkat - 5 + 1440) % 1440; // -5 menit, wrap 24h
+        q('.inp-jam-masuk').value = minToTimeStr(masuk);
+      } else {
+        q('.inp-jam-masuk').value = '';
+      }
+
+      const tempuhMin = (berangkat!=null && tiba!=null) ? (tiba - berangkat + 1440) % 1440 : 0;
+      const durPenyMin = (mulai!=null && selesai!=null) ? (selesai - mulai + 1440) % 1440 : 0;
+      const outTempuh = q('.out-tempuh');
+      const outDurasi = q('.out-durasi');
+      if(outTempuh) outTempuh.textContent = toHHMM(tempuhMin);
+      if(outDurasi) outDurasi.textContent = toHHMM(durPenyMin);
+    };
+
+    ['.inp-jam-berangkat','.inp-jam-tiba','.inp-jam-mulai','.inp-jam-selesai']
+      .forEach(sel => q(sel).addEventListener('input', recompute));
+    recompute();
+
+    q('.btn-cancel').addEventListener('click', () => { applyFilters(); });
+
+    q('.btn-save').addEventListener('click', async () => {
+      const date = (q('.inp-date').value||'').trim();
+      if(!date){ showToast('Tanggal wajib diisi.', 3000, 'warn'); return; }
+
+      const jamMasuk      = (q('.inp-jam-masuk').value||'').trim() || null;
+      const jamBerangkat  = (q('.inp-jam-berangkat').value||'').trim() || null;
+      const jamTiba       = (q('.inp-jam-tiba').value||'').trim() || null;
+      const jamMulai      = (q('.inp-jam-mulai').value||'').trim() || null;
+      const jamSelesai    = (q('.inp-jam-selesai').value||'').trim() || null;
+
+      const berangkatMin = parseTimeToMin(jamBerangkat);
+      const tibaMin      = parseTimeToMin(jamTiba);
+      const mulaiMin     = parseTimeToMin(jamMulai);
+      const selesaiMin   = parseTimeToMin(jamSelesai);
+
+      const tempuhMin = (berangkatMin!=null && tibaMin!=null) ? (tibaMin - berangkatMin + 1440) % 1440 : 0;
+      const durPenyMin = (mulaiMin!=null && selesaiMin!=null) ? (selesaiMin - mulaiMin + 1440) % 1440 : 0;
+
+      const upd = {
+        month: date.slice(0,7),
+        date,
+        tanggal_label: formatTanggalLong(date),
+        teknisi: (q('.inp-teknisi').value||'').trim(),
+        lokasi_dari: (q('.inp-lok-dari').value||'').trim(),
+        lokasi_ke: (q('.inp-lok-ke').value||'').trim(),
+        jenis: q('.inp-jenis').value,
+        detail: (q('.inp-detail').value||'').trim(),
+        status: q('.inp-status').value,
+        jam_masuk: jamMasuk,
+        jam_berangkat: jamBerangkat,
+        jam_tiba: jamTiba,
+        jam_mulai: jamMulai,
+        jam_selesai: jamSelesai,
+        durasi_penyelesaian_min: durPenyMin,
+        jarak_km: parseFloat(q('.inp-jarak').value || '0') || 0,
+        waktu_tempuh_min: tempuhMin,
+        keterangan: (q('.inp-ket').value||'').trim(),
+      };
+
+      try{
+        const { error } = await supabaseClient.from('monthly_reports').update(upd).eq('id', id);
+        if(error) throw error;
+        showToast('Perubahan disimpan.');
+        applyFilters();
+      }catch(err){
+        console.error(err);
+        showToast(`Gagal menyimpan: ${err.message}`, 4000, 'warn');
+      }
     });
   }
 

@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
   else if (title.includes('appsheet'))  body.setAttribute('data-page', 'appsheet');
   else if (title.includes('serah'))     body.setAttribute('data-page', 'serah');
   else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
-  if (typeof initSidebar === 'function') initSidebar();
-  if (typeof initAdminFeatures === 'function') initAdminFeatures();
+  if (typeof initSidebar === 'function') initSidebar();  
   if (typeof initLogoutButton === 'function') initLogoutButton();
 });
 
@@ -275,7 +274,6 @@ Status : ${status}`;
 
 /* ========= Copy & Save Histori (single final toast) ========= */
 copyBtn?.addEventListener("click", async () => {
-  showSpinner?.();
   try {
     // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
@@ -332,6 +330,5 @@ copyBtn?.addEventListener("click", async () => {
     console.error("Copy handler error:", err);
     showToast?.(`Error: ${err?.message || err}`, 4500, "warn");
   } finally {
-    hideSpinner?.();
   }
 });

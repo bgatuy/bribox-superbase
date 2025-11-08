@@ -13,6 +13,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ==================================================
 // Cek jika kita TIDAK sedang di halaman login (yaitu bukan di index.html atau /)
 const path = window.location.pathname;
+const BASE = path.replace(/[^\/]*$/, '');
 if (!path.endsWith('/') && !path.endsWith('/index.html')) {
     // Menggunakan onAuthStateChange untuk menunggu status login siap.
     // Ini akan berjalan sekali saat halaman dimuat.
@@ -22,11 +23,16 @@ if (!path.endsWith('/') && !path.endsWith('/index.html')) {
 
         // Jika tidak ada sesi (pengguna belum login), tendang ke halaman login.
         if (event === 'INITIAL_SESSION' && !session) {
-            window.location.href = '/index.html'; // Arahkan ke halaman login
+            window.location.href = BASE + 'index.html'; // Arahkan ke halaman login (relative)
         } else if (session) {
             // Jika ada sesi, tampilkan konten halaman yang mungkin tersembunyi
             const dashboard = document.querySelector('.dashboard');
             if (dashboard) dashboard.style.visibility = 'visible';
+
+            // Panggil fitur admin HANYA SETELAH sesi dikonfirmasi
+            if (typeof initAdminFeatures === 'function') {
+                initAdminFeatures();
+            }
         }
     });
 }

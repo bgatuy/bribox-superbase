@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // hooks external (kalau ada)
   if (typeof initSidebar === 'function') initSidebar();
-  if (typeof initAdminFeatures === 'function') initAdminFeatures();
   if (typeof initLogoutButton === 'function') initLogoutButton();
   if (typeof initActiveNav === 'function') initActiveNav();
 

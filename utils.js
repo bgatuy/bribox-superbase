@@ -95,10 +95,12 @@ function initLogoutButton() {
   // Fungsi logout bersama
   const handleLogout = async () => {
     if (!confirm('Anda yakin ingin logout?')) return;
+
     if (typeof supabaseClient !== 'undefined') {
       await supabaseClient.auth.signOut();
     }
-    window.location.href = '/index.html'; // FIX: Arahkan ke halaman login (index.html)
+    // Setelah signOut selesai, arahkan ke halaman login.
+    window.location.href = '/index.html';
   };
 
   // Tambahkan event listener ke tombol logout di header
@@ -129,7 +131,8 @@ async function initAdminFeatures() {
     return;
   }
 
-  if (isAdmin) {
+  if (isAdmin === true) {
+    // Tampilkan link di sidebar (desktop)
     const nav = document.querySelector('.sidebar nav');
     if (nav && !nav.querySelector('a[href="admin.html"]')) {
       const adminLink = document.createElement('a');
@@ -137,6 +140,33 @@ async function initAdminFeatures() {
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
       
       nav.appendChild(adminLink);
+    }
+
+    // Tampilkan tombol di navigasi bawah (mobile)
+    const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
+    if (mobileAdminButton) {
+      // Tampilkan tombol dengan mengubah display style
+      mobileAdminButton.style.display = 'flex';
+
+      // Ubah grid layout navigasi bawah untuk mengakomodasi tombol admin
+      const bottomNav = document.querySelector('.bottom-nav');
+      if (bottomNav) {
+        // Dibuat 5 kolom jika ada tombol admin
+        bottomNav.style.gridTemplateColumns = 'repeat(5, 1fr)'; 
+      }
+    }
+  } else {
+    // Jika BUKAN admin, pastikan tombol disembunyikan dan layout kembali normal
+    const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
+    if (mobileAdminButton) {
+      // Sembunyikan tombol
+      mobileAdminButton.style.display = 'none';
+    }
+
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+      // Kembalikan ke 4 kolom
+      bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
     }
   }
 }

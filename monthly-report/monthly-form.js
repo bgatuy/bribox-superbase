@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initSidebar === 'function') initSidebar();
 
   if (typeof initAdminFeatures === 'function') initAdminFeatures();
-  if (typeof initLogoutButton === 'function') initLogoutButton();
+  if (typeof initLogoutButton === 'function') initLogoutButton(); // <-- FUNGSI LOGOUT DIPANGGIL
 });
 
   // ===== elem refs
@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnLihatBulan = document.getElementById('btnLihatBulan');
   const countBulan = document.getElementById('countBulan');
   const toast = document.getElementById('toast');
+  const pageSubtitle = document.querySelector('.dashboard-header .page-subtitle');
+  const formTitle = document.querySelector('section.card h3');
+  const submitBtn = document.querySelector('#formReport .toolbar .btn.primary');
 
   // ===== utils
   const today = new Date();
@@ -53,6 +56,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const minToTimeStr = (m)=> `${pad(Math.floor((m%1440)/60))}:${pad(Math.floor(m%60))}`;
   const defaultMonth = () => `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
   const defaultDate  = () => `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+  const qs = new URL(location.href).searchParams;
+  const editId = qs.get('edit');
 
   async function refreshCountForMonth(month){
     if (!countBulan || !supabaseClient) return;
@@ -107,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else { durasiPenyelesaian.value = '0:00'; }
   }
 
-  // ===== init
+  // ===== init (insert defaults; overridden in edit mode)
   bulan.value = defaultMonth();
   tanggal.value = defaultDate();
   setLinkTargets(bulan.value);
@@ -122,13 +128,84 @@ document.addEventListener('DOMContentLoaded', function () {
 
   bulan.addEventListener('change', ()=>{ setLinkTargets(bulan.value); refreshCountForMonth(bulan.value); });
 
+  // ===== Edit mode: load existing record
+  async function loadForEdit(id){
+    try{
+      if(!id) return;
+      const { data, error } = await supabaseClient.from('monthly_reports').select('*').eq('id', id).single();
+      if(error) throw error;
+      if(!data) return;
+
+      // UI labels
+      if (pageSubtitle) pageSubtitle.textContent = 'Edit Monthly Report';
+      if (formTitle) formTitle.textContent = 'Edit SPJ Harian';
+      if (submitBtn) submitBtn.textContent = 'Update';
+
+      // month hint from URL if present
+      const urlMonth = qs.get('month');
+
+      // Fill values
+      bulan.value = (data.month || urlMonth || defaultMonth());
+      tanggal.value = (data.date || defaultDate());
+
+      // Populate teknisi list before setting selected
+      populateTeknisi();
+      if (teknisi.querySelector(`option[value="${data.teknisi||''}"]`)) {
+        teknisi.value = data.teknisi || '';
+      } else {
+        // fallback: add custom option if not in list
+        if (data.teknisi) {
+          const opt = document.createElement('option');
+          opt.value = data.teknisi; opt.textContent = data.teknisi; teknisi.appendChild(opt); teknisi.value = data.teknisi;
+        } else {
+          teknisi.value = '';
+        }
+      }
+
+      jenis.value = data.jenis || 'Corrective Maintenance';
+      lokasiDari.value = data.lokasi_dari || '';
+      lokasiKe.value = data.lokasi_ke || '';
+      detail.value = data.detail || '';
+      status.value = data.status || 'Done';
+
+      jamMasuk.value = data.jam_masuk || '';
+      jamBerangkat.value = data.jam_berangkat || '';
+      jamTiba.value = data.jam_tiba || '';
+      jamMulai.value = data.jam_mulai || '';
+      jamSelesai.value = data.jam_selesai || '';
+
+      durasiPenyelesaian.value = (function(){
+        const m = Math.max(0, ((() => { const ms = (data.jam_mulai||'').split(':'); const ss = (data.jam_selesai||'').split(':'); if(ms.length===2&&ss.length===2){ const a=+ms[0]*60+ +ms[1]; const b=+ss[0]*60+ +ss[1]; return (b-a+1440)%1440; } return 0; })()));
+        const hh = Math.floor(m/60), mm = m%60; return `${hh}:${pad(mm)}`;
+      })();
+      jarak.value = data.jarak_km ?? 0;
+      waktuTempuh.value = (function(){
+        const m = Math.max(0, data.waktu_tempuh_min ?? 0);
+        const hh = Math.floor(m/60), mm = m%60; return `${hh}:${pad(mm)}`;
+      })();
+      keterangan.value = data.keterangan || '';
+
+      // Update link targets and counters
+      setLinkTargets(bulan.value);
+      refreshCountForMonth(bulan.value);
+
+      // Recompute to sync auto fields if user edits something next
+      computeAutoFields();
+    }catch(err){
+      console.error('Gagal memuat data edit:', err);
+      showToast(`Gagal memuat data: ${err.message}`, 4000, 'warn');
+    }
+  }
+
+  if (editId) { loadForEdit(editId); }
+
   // ===== helper
   function formatTanggalLong(dateStr){
     try { return new Date(dateStr+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long', day:'2-digit', month:'long', year:'numeric'}); }
     catch { return dateStr; }
   }
 
-  // ===== submit
+  // ===== submit (insert or update)
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const month = bulan.value?.trim();
@@ -167,11 +244,21 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     try {
-      const { error } = await supabaseClient.from('monthly_reports').insert([rec]);
-      if (error) throw error;
-      showToast('Data berhasil disimpan ke server.');
-      form.reset(); bulan.value = month; tanggal.value = defaultDate();
-      setLinkTargets(month); refreshCountForMonth(month); computeAutoFields();
+      if (editId) {
+        // Update existing
+        const { error } = await supabaseClient.from('monthly_reports').update(rec).eq('id', editId);
+        if (error) throw error;
+        showToast('Perubahan berhasil disimpan.');
+        // Kembali ke data bulan terkait
+        window.location.href = `monthly-data.html?month=${encodeURIComponent(month)}`;
+      } else {
+        // Insert new
+        const { error } = await supabaseClient.from('monthly_reports').insert([rec]);
+        if (error) throw error;
+        showToast('Data berhasil disimpan ke server.');
+        form.reset(); bulan.value = month; tanggal.value = defaultDate();
+        setLinkTargets(month); refreshCountForMonth(month); computeAutoFields();
+      }
     } catch (error) {
       console.error('Gagal menyimpan laporan:', error);
       showToast(`Gagal menyimpan: ${error.message}`, 4000, 'warn');
