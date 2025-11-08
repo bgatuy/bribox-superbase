@@ -86,13 +86,59 @@ async function loadAdminStats() {
   if (totalFilesEl) totalFilesEl.textContent = '0';
   if (storageUsageEl) storageUsageEl.textContent = '0 MB';
 
-  // TODO: Ganti dengan panggilan Supabase sungguhan
-  // Contoh:
-  // const { data: users, error: userError } = await supabaseClient.from('users').select('*', { count: 'exact', head: true });
-  // if (totalUsersEl && !userError) totalUsersEl.textContent = users.count;
+  if (typeof supabaseClient === 'undefined') return;
 
-  // const { data: reports, error: reportError } = await supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true });
-  // if (monthlyReportsEl && !reportError) monthlyReportsEl.textContent = reports.count;
+  // Helper untuk format ukuran
+  const formatBytes = (bytes) => {
+    const b = Number(bytes) || 0;
+    if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(2) + ' MB';
+    if (b >= 1024) return (b / 1024).toFixed(2) + ' KB';
+    return b + ' B';
+  };
 
-  // ...dan seterusnya untuk file dan storage.
+  try {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${yyyy}-${mm}`; // sesuai kolom month di monthly_reports
+
+    // Lakukan paralel untuk kecepatan
+    const [
+      filesCountRes,
+      monthlyCountRes,
+      sizesUsersRes
+    ] = await Promise.all([
+      supabaseClient.from('pdf_history').select('*', { count: 'exact', head: true }),
+      supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }).eq('month', monthKey),
+      // Ambil hanya kolom yang diperlukan untuk menghemat payload
+      supabaseClient.from('pdf_history').select('user_id,size_bytes')
+    ]);
+
+    // Total file PDF
+    if (!filesCountRes.error && totalFilesEl) {
+      totalFilesEl.textContent = String(filesCountRes.count || 0);
+    }
+
+    // Laporan bulan ini
+    if (!monthlyCountRes.error && monthlyReportsEl) {
+      monthlyReportsEl.textContent = String(monthlyCountRes.count || 0);
+    }
+
+    // Total pengguna (distinct user_id) + total size
+    if (!sizesUsersRes.error && Array.isArray(sizesUsersRes.data)) {
+      const rows = sizesUsersRes.data;
+      let totalBytes = 0;
+      const userSet = new Set();
+      for (const r of rows) {
+        if (r.user_id) userSet.add(r.user_id);
+        if (typeof r.size_bytes === 'number') totalBytes += r.size_bytes;
+      }
+      if (totalUsersEl) totalUsersEl.textContent = String(userSet.size || 0);
+      if (storageUsageEl) storageUsageEl.textContent = formatBytes(totalBytes);
+    }
+  } catch (e) {
+    // Biarkan placeholder jika gagal; tampilkan log untuk debugging
+    console.warn('Gagal memuat statistik admin:', e);
+  }
 }
