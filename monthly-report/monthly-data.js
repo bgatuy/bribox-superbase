@@ -459,13 +459,24 @@
       if(!rowsAll.length){ showToast('Data kosong untuk bulan ini.'); return; }
       if(!window.ExcelJS) { showToast('ExcelJS belum termuat.'); return; }
 
-      // Ambil nama teknisi dari data bulan ini (tetap per-individu)
-      // Untuk sistem multi-user, kita ambil nama user yang login
+      // Ambil nama teknisi berdasarkan user login (mendukung email ATAU nama tampilan)
       const { data: { user } } = await supabaseClient.auth.getUser();
-      const currentUserEmail = user?.email || '';
-      const rowsFilteredForCurrentUser = rowsAll.filter(r => r.teknisi === currentUserEmail);
+      const currentUserEmail = (user?.email || '').trim();
+      const currentUserName  = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').trim();
 
-      const uniqTek = [...new Set(rowsFilteredForCurrentUser.map(r => (r.teknisi||"").trim()).filter(Boolean))];
+      // Cocokkan record yang teknisinya sama dengan email atau nama pengguna
+      let rowsCurrent = rowsAll.filter(r => {
+        const t = (r.teknisi || '').trim();
+        return t === currentUserEmail || (currentUserName && t === currentUserName);
+      });
+
+      // Jika tidak ketemu apa-apa, tapi seluruh data hanya berisi 1 teknisi unik, pakai itu sebagai fallback
+      let uniqTek = [...new Set(rowsCurrent.map(r => (r.teknisi||'').trim()).filter(Boolean))];
+      if (rowsCurrent.length === 0) {
+        const uniqAll = [...new Set(rowsAll.map(r => (r.teknisi||'').trim()).filter(Boolean))];
+        if (uniqAll.length === 1) { rowsCurrent = rowsAll; uniqTek = uniqAll; }
+      }
+
       if (uniqTek.length === 0) { showToast('Nama teknisi tidak ditemukan di data.'); return; }
       if (uniqTek.length > 1)   { showToast('Ditemukan >1 nama teknisi. Rapikan/filter dulu sebelum export.'); return; }
       const teknisiPembuat = uniqTek[0];
@@ -478,7 +489,7 @@
       const fileName=`SPJ ${monthName} ${yy} - ${teknisiPembuat}.xlsx`;
 
       // ==== BUILD DATA SEBULAN PENUH ====
-      const dataRows = buildMonthRows(yy, mm, rowsFilteredForCurrentUser);
+      const dataRows = buildMonthRows(yy, mm, rowsCurrent);
 
       const wb=new ExcelJS.Workbook();
       const ws=wb.addWorksheet('Format SPJ');
