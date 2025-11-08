@@ -151,37 +151,59 @@ async function initAdminFeatures() {
   const mobileAdminButton = bottomNav?.querySelector('.bn-admin');
   const sidebarNav = document.querySelector('.sidebar nav');
 
-  // Jika elemen penting tidak ada, hentikan.
-  if (!bottomNav || !mobileAdminButton || !sidebarNav) return;
-
   // Panggil fungsi is_admin() dari database untuk memeriksa role.
   const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
 
   if (error) {
     console.error('Gagal memeriksa status admin:', error.message);
-    // Pastikan layout kembali ke default jika ada error
-    mobileAdminButton.style.display = 'none';
-    bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    if (mobileAdminButton) {
+      mobileAdminButton.setAttribute('hidden', '');
+      mobileAdminButton.style.removeProperty('display');
+    }
+    requestAnimationFrame(updateBottomNavColumns);
     return;
   }
 
   if (isAdmin === true) {
     const root = getAppRoot();
-    if (!sidebarNav.querySelector('a[href*="admin.html"]')) {
+    if (sidebarNav && !sidebarNav.querySelector('a[href*="admin.html"]')) {
       const adminLink = document.createElement('a');
       adminLink.href = root + 'admin.html';
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
       sidebarNav.appendChild(adminLink);
     }
-    mobileAdminButton.href = root + 'admin.html';
-    mobileAdminButton.style.display = 'flex';
-    bottomNav.style.gridTemplateColumns = 'repeat(5, 1fr)';
+    if (mobileAdminButton) {
+      mobileAdminButton.href = root + 'admin.html';
+      mobileAdminButton.removeAttribute('hidden');
+      mobileAdminButton.style.display = 'flex';
+    }
   } else {
-    // Jika BUKAN admin, secara eksplisit sembunyikan tombol DAN kembalikan grid ke 4 kolom.
-    mobileAdminButton.style.display = 'none';
-    bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    if (mobileAdminButton) {
+      mobileAdminButton.setAttribute('hidden', '');
+      mobileAdminButton.style.removeProperty('display');
+    }
   }
+  requestAnimationFrame(updateBottomNavColumns);
 }
+
+function updateBottomNavColumns(){
+  try{
+    const bottomNav = document.querySelector('.bottom-nav');
+    if(!bottomNav) return;
+    const visible = Array.from(bottomNav.children).filter(el => {
+      if (el.hasAttribute('hidden')) return false;
+      const st = window.getComputedStyle(el);
+      return st.display !== 'none' && st.visibility !== 'collapse';
+    });
+    const n = Math.max(visible.length, 1);
+    bottomNav.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  }catch(e){ }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateBottomNavColumns();
+  window.addEventListener('resize', () => requestAnimationFrame(updateBottomNavColumns));
+});
 
 /**
  * Inisialisasi layout global, memuat konten halaman, dan mengelola status aktif.
