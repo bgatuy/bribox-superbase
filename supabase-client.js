@@ -15,24 +15,32 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const path = window.location.pathname;
 const BASE = path.replace(/[^\/]*$/, '');
 if (!path.endsWith('/') && !path.endsWith('/index.html')) {
-    // Menggunakan onAuthStateChange untuk menunggu status login siap.
-    // Ini akan berjalan sekali saat halaman dimuat.
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
-        // Berhenti mendengarkan setelah pengecekan pertama selesai untuk efisiensi.
-        subscription.unsubscribe();
+  // Tetap berlangganan supaya SIGNED_OUT juga ter-handle
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    // Initial gate saat load halaman selain index
+    if (event === 'INITIAL_SESSION') {
+      if (!session) {
+        window.location.replace(BASE + 'index.html');
+        return;
+      }
+      // Ada sesi → tampilkan konten
+      const dashboard = document.querySelector('.dashboard');
+      if (dashboard) dashboard.style.visibility = 'visible';
+      if (typeof initAdminFeatures === 'function') initAdminFeatures();
+      return;
+    }
 
-        // Jika tidak ada sesi (pengguna belum login), tendang ke halaman login.
-        if (event === 'INITIAL_SESSION' && !session) {
-            window.location.href = BASE + 'index.html'; // Arahkan ke halaman login (relative)
-        } else if (session) {
-            // Jika ada sesi, tampilkan konten halaman yang mungkin tersembunyi
-            const dashboard = document.querySelector('.dashboard');
-            if (dashboard) dashboard.style.visibility = 'visible';
+    // Saat logout dari halaman mana pun, paksa kembali ke login
+    if (event === 'SIGNED_OUT') {
+      window.location.replace(BASE + 'index.html');
+      return;
+    }
 
-            // Panggil fitur admin HANYA SETELAH sesi dikonfirmasi
-            if (typeof initAdminFeatures === 'function') {
-                initAdminFeatures();
-            }
-        }
-    });
+    // Bila token diperbarui/masuk ulang, pastikan konten terlihat
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      const dashboard = document.querySelector('.dashboard');
+      if (dashboard) dashboard.style.visibility = 'visible';
+      if (typeof initAdminFeatures === 'function') initAdminFeatures();
+    }
+  });
 }

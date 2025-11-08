@@ -99,8 +99,9 @@ function initLogoutButton() {
     if (typeof supabaseClient !== 'undefined') {
       await supabaseClient.auth.signOut();
     }
-    // Setelah signOut selesai, arahkan ke halaman login.
-    window.location.href = '/index.html';
+    // Setelah signOut selesai, arahkan ke halaman login (pakai BASE relatif agar aman di subfolder)
+    const base = window.location.pathname.replace(/[^\/]*$/, '');
+    window.location.replace(base + 'index.html');
   };
 
   // Tambahkan event listener ke tombol logout di header

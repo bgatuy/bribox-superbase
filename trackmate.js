@@ -28,6 +28,21 @@ const output       = document.getElementById('output');
 const copyBtn      = document.getElementById('copyBtn');
 const lokasiSelect = document.getElementById('inputLokasi');
 
+// Debounce flag untuk mencegah double-upload di mobile
+let isUploading = false;
+
+// Upload helper dengan 1x retry untuk kasus network error (mobile)
+async function uploadWithRetry(filePath, file, options = {}) {
+  const attempt = () => supabaseClient.storage.from('pdf-forms').upload(filePath, file, options);
+  let res = await attempt();
+  if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
+    // backoff singkat lalu ulang
+    await new Promise(r => setTimeout(r, 500));
+    res = await attempt();
+  }
+  return res;
+}
+
 /* ========= Supabase helpers ========= */
 async function getUserOrThrow() {
   const { data: { session }, error } = await supabaseClient.auth.getSession();
@@ -275,6 +290,9 @@ Status : ${status}`;
 /* ========= Copy & Save Histori (single final toast) ========= */
 copyBtn?.addEventListener("click", async () => {
   try {
+    if (isUploading) return; // cegah trigger ganda
+    isUploading = true;
+    if (copyBtn) copyBtn.disabled = true;
     // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
@@ -293,10 +311,12 @@ copyBtn?.addEventListener("click", async () => {
     const filePath = `${user.id}/${contentHash}.pdf`;
 
     // 4) Upload file ke Supabase Storage (idempotent by path)
-    const { error: uploadError } = await supabaseClient
-      .storage.from('pdf-forms')
-      .upload(filePath, file, { upsert: true });
-    if (uploadError) throw uploadError;
+    const { error: uploadError } = await uploadWithRetry(
+      filePath,
+      file,
+      { upsert: true, contentType: file.type || 'application/pdf' }
+    );
+    if (uploadError) throw new Error(`Upload gagal: ${uploadError.message}`);
 
     // 5) META: coba reuse dulu kalau hash ini sudah pernah ada
     let meta = await getMetaByHash(contentHash);
@@ -323,12 +343,14 @@ copyBtn?.addEventListener("click", async () => {
     const { error: dbError } = await supabaseClient
       .from('pdf_history')
       .upsert(payload, { onConflict: 'content_hash' });
-    if (dbError) throw dbError;
+    if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);
 
     showToast?.("Berhasil disimpan ke server.", 3000, "success");
   } catch (err) {
     console.error("Copy handler error:", err);
     showToast?.(`Error: ${err?.message || err}`, 4500, "warn");
   } finally {
+    isUploading = false;
+    if (copyBtn) copyBtn.disabled = false;
   }
 });
