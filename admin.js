@@ -45,27 +45,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       showSpinner();
 
-      // Sertakan token session + body konfirmasi; beberapa fungsi meminta header/confirm
-      const { data: sess } = await supabaseClient.auth.getSession();
-      const headers = {};
-      if (sess?.session?.access_token) headers['Authorization'] = `Bearer ${sess.session.access_token}`;
-
-      // Panggil Edge Function
+      // Panggil Edge Function (tanpa header kustom agar tidak memicu isu CORS tambahan)
       const { data, error } = await supabaseClient.functions.invoke('reset-all-data', {
-        headers,
         body: { confirm: 'RESET' }
       });
 
       if (error) {
-        // Perkaya pesan error dengan status/body jika ada
-        let extra = '';
-        try {
-          const resp = error?.context?.response;
-          if (resp) {
-            const text = await resp.text();
-            extra = ` (HTTP ${resp.status}) ${text || resp.statusText}`;
-          }
-        } catch {}
+        // Perkaya pesan error dengan status jika tersedia
+        const resp = error?.context?.response;
+        const extra = resp ? ` (HTTP ${resp.status} ${resp.statusText || ''})` : '';
         throw new Error(error.message + extra);
       }
 
