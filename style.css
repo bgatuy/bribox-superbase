@@ -352,6 +352,10 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
     padding-bottom:env(safe-area-inset-bottom);
     -webkit-tap-highlight-color:transparent;
   }
+  /* Jika tombol Admin terlihat, otomatis jadi 5 kolom (pure CSS) */
+  .bottom-nav:has(.bn-admin:not([hidden])){
+    grid-template-columns:repeat(5,1fr);
+  }
 
   .bn-item{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
