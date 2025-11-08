@@ -20,7 +20,7 @@
   const norm = (s) => String(s || "").toLowerCase().normalize("NFKD").replace(/\s+/g, " ").trim();
 
   async function loadReportsFromSupabase(month) {
-    if (!supabaseClient) return [];
+    if (typeof supabaseClient === 'undefined') return [];
     const { data, error } = await supabaseClient.from('monthly_reports').select('*').eq('month', month);
     if (error) {
       showToast(`Gagal memuat data: ${error.message}`, 4000, 'warn');

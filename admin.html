@@ -73,9 +73,13 @@
     .danger-zone p {
       font-size: 0.9rem;
     }
+
+    /* Sembunyikan bottom-nav di halaman admin
+       (bottom-nav adalah menu khusus mobile dan tidak relevan di halaman admin) */
+    .bottom-nav { display: none !important; }
   </style>
 </head>
-<body data-page="admin">
+<body data-page="admin" style="visibility:hidden;">
   <div class="dashboard">
     <aside class="sidebar">
       <!-- Sidebar akan sama seperti halaman lain -->

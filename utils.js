@@ -154,6 +154,12 @@ async function initAdminFeatures() {
   // Jika elemen penting tidak ada, hentikan.
   if (!mobileAdminButton || !sidebarNav || !bottomNav) return;
 
+  // KUNCI PERBAIKAN:
+  // Selalu hapus link admin yang mungkin sudah ada di sidebar dari eksekusi sebelumnya.
+  // Ini mencegah link "yatim" muncul untuk non-admin.
+  const existingAdminLink = sidebarNav.querySelector('a[href*="admin.html"]');
+  if (existingAdminLink) existingAdminLink.remove();
+
   // Panggil fungsi is_admin() dari database untuk memeriksa role.
   const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
 
@@ -167,18 +173,16 @@ async function initAdminFeatures() {
 
   if (isAdmin === true) {
     const root = getAppRoot();
-    if (!sidebarNav.querySelector('a[href*="admin.html"]')) {
-      const adminLink = document.createElement('a');
-      adminLink.href = root + 'admin.html';
-      adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
-      sidebarNav.appendChild(adminLink);
-    }
+    const adminLink = document.createElement('a');
+    adminLink.href = root + 'admin.html';
+    adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
+    sidebarNav.appendChild(adminLink);
     mobileAdminButton.href = root + 'admin.html';
-    mobileAdminButton.removeAttribute('hidden'); // <-- KUNCI PERBAIKAN
+    mobileAdminButton.removeAttribute('hidden');
     bottomNav.style.gridTemplateColumns = 'repeat(5, 1fr)';
   } else {
     // Jika BUKAN admin, secara eksplisit sembunyikan tombol DAN kembalikan grid ke 4 kolom.
-    mobileAdminButton.setAttribute('hidden', ''); // <-- KUNCI PERBAIKAN
+    mobileAdminButton.setAttribute('hidden', '');
     bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
   }
 }

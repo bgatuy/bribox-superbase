@@ -19,6 +19,10 @@ function __getAppRoot() {
   return p.replace(/[^\/]*$/, '');
 }
 const path = window.location.pathname;
+// Jika di admin.html, sembunyikan konten sampai verifikasi role selesai
+if (path.endsWith('/admin.html') || path.endsWith('admin.html')) {
+  try { document.body.style.visibility = 'hidden'; } catch {}
+}
 const BASE = __getAppRoot();
 if (!path.endsWith('/') && !path.endsWith('/index.html')) {
   // Gate cepat: kalau tidak ada session, langsung redirect (tanpa menunggu event)
@@ -26,10 +30,28 @@ if (!path.endsWith('/') && !path.endsWith('/index.html')) {
     if (!session) {
       window.location.replace(BASE + 'index.html');
     } else {
-      // JANGAN panggil initAdminFeatures di sini.
-      // Cukup pastikan layout utama dipanggil setelah sesi valid.
-      // initGlobalLayout akan menangani sisanya, termasuk memanggil initAdminFeatures.
-      if (typeof initGlobalLayout === 'function') {
+      // Jika halaman admin, verifikasi role lebih dulu
+      if (path.endsWith('/admin.html') || path.endsWith('admin.html')) {
+        try {
+          const { data: isAdmin } = await supabaseClient.rpc('is_admin');
+          if (isAdmin === true) {
+            try { document.body.style.visibility = 'visible'; } catch {}
+          } else {
+            // non-admin: langsung alihkan ke halaman utama tanpa alert
+            window.location.replace(BASE + 'trackmate.html');
+            return;
+          }
+        } catch {
+          // error cek role -> alihkan ke halaman utama
+          window.location.replace(BASE + 'trackmate.html');
+          return;
+        }
+      }
+
+      // Jangan panggil initGlobalLayout sembarang halaman.
+      // Hanya jalankan bila marker elemen layout tersedia.
+      const hasLayoutAnchor = document.getElementById('page-content');
+      if (typeof initGlobalLayout === 'function' && hasLayoutAnchor) {
         await initGlobalLayout();
       }
     }

@@ -1,6 +1,8 @@
 // admin.js
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Sembunyikan tampilan sampai verifikasi admin selesai untuk mencegah flicker nav bawah
+  try { document.body.style.visibility = 'hidden'; } catch {}
   // Pastikan supabaseClient sudah ada
   if (typeof supabaseClient === 'undefined') {
     alert('Koneksi ke Supabase gagal. Halaman tidak dapat dimuat.');
@@ -25,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Inisialisasi fungsionalitas umum
+  // Sudah lolos verifikasi admin -> tampilkan halaman
+  try { document.body.style.visibility = 'visible'; } catch {}
   if (typeof initSidebar === 'function') initSidebar();
   if (typeof initLogoutButton === 'function') initLogoutButton();
   if (typeof initAdminFeatures === 'function') initAdminFeatures();

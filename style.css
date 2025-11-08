@@ -334,6 +334,8 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
 /* =========================
    BOTTOM NAV (mobile only)
 ========================= */
+/* Selalu sembunyikan bottom-nav jika berada di halaman admin */
+body[data-page="admin"] .bottom-nav { display: none !important; }
 .bottom-nav{ display:none; }
 @media (max-width:768px){
   /* sembunyikan sidebar & burger */

@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const editId = qs.get('edit');
 
   async function refreshCountForMonth(month){
-    if (!countBulan || !supabaseClient) return;
+    if (!countBulan || (typeof supabaseClient === 'undefined')) return;
     const { count, error } = await supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }).eq('month', month);
     if (!error) {
       countBulan.textContent = count || 0;
