@@ -31,42 +31,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 2. Muat data statistik
   loadAdminStats();
 
-  // 3. Tambahkan event listener ke tombol reset
-  const btnAdminResetAll = document.getElementById('btnAdminResetAll');
-  btnAdminResetAll?.addEventListener('click', async () => {
-    const confirmationText = "PERINGATAN ADMIN:\n\nAnda akan MENGHAPUS SEMUA DATA (laporan bulanan dan file PDF) dari SEMUA PENGGUNA secara permanen. Ini dilakukan untuk mengosongkan database.\n\nKetik 'RESET' untuk konfirmasi.";
-    const userInput = prompt(confirmationText);
+  // 3) Event: Reset Semua Data
+const btnAdminResetAll = document.getElementById('btnAdminResetAll');
+btnAdminResetAll?.addEventListener('click', async () => {
+  const confirmationText =
+    "PERINGATAN ADMIN:\n\nAnda akan MENGHAPUS SEMUA DATA ...\n\nKetik 'RESET' untuk konfirmasi.";
+  const userInput = prompt(confirmationText);
+  if (userInput !== 'RESET') {
+    showToast('Reset dibatalkan.', 3000, 'info');
+    return;
+  }
 
-    if (userInput !== 'RESET') {
-      showToast('Reset dibatalkan.', 3000, 'info');
-      return;
+  try {
+    showSpinner();
+
+    // 🔑 AMBIL ACCESS TOKEN USER
+    const { data: sess } = await supabaseClient.auth.getSession();
+    const token = sess?.session?.access_token || null;
+
+    // 🚀 PANGGIL EDGE FUNCTION + KIRIM AUTH HEADER
+    const { data, error } = await supabaseClient.functions.invoke('reset-all-data', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: { confirm: 'RESET' }
+    });
+
+    if (error) {
+      const resp = error?.context?.response;
+      const extra = resp ? ` (HTTP ${resp.status} ${resp.statusText || ''})` : '';
+      throw new Error(error.message + extra);
     }
 
-    try {
-      showSpinner();
+    console.log('Respon fungsi:', data);
+    showToast('RESET BERHASIL: Semua data pengguna telah dihapus.', 5000, 'success');
 
-      // Panggil Edge Function (tanpa header kustom agar tidak memicu isu CORS tambahan)
-      const { data, error } = await supabaseClient.functions.invoke('reset-all-data', {
-        body: { confirm: 'RESET' }
-      });
-
-      if (error) {
-        // Perkaya pesan error dengan status jika tersedia
-        const resp = error?.context?.response;
-        const extra = resp ? ` (HTTP ${resp.status} ${resp.statusText || ''})` : '';
-        throw new Error(error.message + extra);
-      }
-
-      console.log('Respon dari fungsi:', data);
-      showToast('RESET BERHASIL: Semua data pengguna telah dihapus.', 5000, 'success');
-
-    } catch (err) {
-      console.error('Gagal memanggil fungsi reset:', err);
-      showToast(`RESET GAGAL: ${err.message}`, 5000, 'warn');
-    } finally {
-      hideSpinner();
-    }
-  });
+  } catch (err) {
+    console.error('Gagal memanggil fungsi reset:', err);
+    showToast(`RESET GAGAL: ${err.message}`, 5000, 'warn');
+  } finally {
+    hideSpinner();
+  }
+});
 });
 
 /**
