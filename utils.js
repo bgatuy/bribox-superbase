@@ -96,12 +96,31 @@ function initLogoutButton() {
   const handleLogout = async () => {
     if (!confirm('Anda yakin ingin logout?')) return;
 
-    if (typeof supabaseClient !== 'undefined') {
-      await supabaseClient.auth.signOut();
+    try {
+      // Sembunyikan konten segera agar tidak ada interaksi saat proses logout
+      const dash = document.querySelector('.dashboard');
+      if (dash) dash.style.visibility = 'hidden';
+      showSpinner?.();
+
+      if (typeof supabaseClient !== 'undefined') {
+        await Promise.race([
+          supabaseClient.auth.signOut().catch(()=>{}),
+          new Promise(r => setTimeout(r, 1500)) // fallback timeout singkat
+        ]);
+      }
+
+      // Bersihkan token Supabase di localStorage kalau masih tersisa
+      try {
+        Object.keys(localStorage)
+          .filter(k => /^sb-.*-auth-token/i.test(k) || /supabase.*auth/i.test(k))
+          .forEach(k => localStorage.removeItem(k));
+      } catch {}
+    } finally {
+      hideSpinner?.();
+      // Redirect pakai BASE relatif agar aman di subfolder
+      const base = window.location.pathname.replace(/[^\/]*$/, '');
+      window.location.replace(base + 'index.html');
     }
-    // Setelah signOut selesai, arahkan ke halaman login (pakai BASE relatif agar aman di subfolder)
-    const base = window.location.pathname.replace(/[^\/]*$/, '');
-    window.location.replace(base + 'index.html');
   };
 
   // Tambahkan event listener ke tombol logout di header
