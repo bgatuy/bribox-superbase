@@ -347,19 +347,21 @@ body[data-page="admin"] .bottom-nav { display: none !important; }
   .bottom-nav{
     position:fixed; left:0; right:0; bottom:0; height:64px;
     display:grid;
-    /* Kunci: Biarkan grid menghitung kolomnya sendiri berdasarkan item yang terlihat */
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    /* Default non-admin: 4 kolom */
+    grid-template-columns: repeat(4, 1fr);
     background:#fff; border-top:1px solid #e5e7eb; z-index:1000;
     padding-bottom:env(safe-area-inset-bottom);
     -webkit-tap-highlight-color:transparent;
   }
+  /* Admin: 5 kolom stabil tanpa goyang */
+  .is-admin .bottom-nav{ grid-template-columns: repeat(5, 1fr); }
 
   .bn-item{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
     text-decoration:none; color:#444; font-size:11px; font-weight:600;
   }
   /* Default: sembunyikan tombol Admin di mobile nav untuk cegah flicker.
-     Nanti akan ditampilkan lagi via class body.is-admin */
+     Nanti akan ditampilkan lagi via class .is-admin (di <html> atau <body>) */
   .bn-item.bn-admin{ display:none; }
   .is-admin .bn-item.bn-admin{ display:flex; }
   .bn-item .material-icons{ font-size:22px; line-height:1; }

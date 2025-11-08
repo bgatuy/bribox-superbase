@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="monthly-form.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script>
+    (function(){ try{ if(localStorage.getItem('is_admin_flag')==='1') document.documentElement.classList.add('is-admin'); }catch{}})();
+  </script>
   <!-- guard overflow supaya konten gak meluber -->
   <style>body[data-page="monthly"] .dashboard .main{min-width:0}</style>
 </head>

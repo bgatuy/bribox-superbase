@@ -184,10 +184,18 @@ async function initAdminFeatures() {
       mobileAdminButton.href = root + 'admin.html';
       mobileAdminButton.removeAttribute('hidden');
     }
-    try { document.body.classList.add('is-admin'); } catch {}
+    try {
+      document.body.classList.add('is-admin');
+      document.documentElement.classList.add('is-admin');
+      localStorage.setItem('is_admin_flag','1');
+    } catch {}
   } else {
     removeMobileAdmin();
-    try { document.body.classList.remove('is-admin'); } catch {}
+    try {
+      document.body.classList.remove('is-admin');
+      document.documentElement.classList.remove('is-admin');
+      localStorage.setItem('is_admin_flag','0');
+    } catch {}
   }
 }
 
