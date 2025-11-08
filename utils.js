@@ -147,35 +147,75 @@ function initLogoutButton() {
  * Fungsi ini harus dipanggil setelah user terautentikasi.
  */
 async function initAdminFeatures() {
-  const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
-  const sidebarNav = document.querySelector('.sidebar nav');
-
-  // Jika elemen penting tidak ada, hentikan.
-  if (!mobileAdminButton || !sidebarNav) return;
+  if (typeof supabaseClient === 'undefined') return;
 
   // Panggil fungsi is_admin() dari database untuk memeriksa role.
+  // Ini adalah cara yang lebih baik daripada hardcoding ID.
   const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
 
   if (error) {
+    // Jangan tampilkan error ke user, cukup log di console.
     console.error('Gagal memeriksa status admin:', error.message);
-    mobileAdminButton.style.display = 'none'; // Sembunyikan jika error
     return;
   }
 
   if (isAdmin === true) {
     const root = getAppRoot();
-    if (!sidebarNav.querySelector('a[href*="admin.html"]')) {
+    // Tampilkan link di sidebar (desktop)
+    const nav = document.querySelector('.sidebar nav');
+    if (nav && !nav.querySelector('a[href="admin.html"]')) {
       const adminLink = document.createElement('a');
       adminLink.href = root + 'admin.html';
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
-      sidebarNav.appendChild(adminLink);
+      
+      nav.appendChild(adminLink);
     }
-    mobileAdminButton.href = root + 'admin.html';
-    mobileAdminButton.style.display = 'flex'; // Cukup tampilkan tombol
+
+    // Tampilkan tombol di navigasi bawah (mobile)
+    const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
+    if (mobileAdminButton) {
+      mobileAdminButton.href = root + 'admin.html';
+      // Tampilkan tombol dengan mengubah display style
+      mobileAdminButton.style.display = 'flex';
+
+      // Ubah grid layout navigasi bawah untuk mengakomodasi tombol admin
+      const bottomNav = document.querySelector('.bottom-nav');
+      if (bottomNav) {
+        // Dibuat 5 kolom jika ada tombol admin
+        bottomNav.style.gridTemplateColumns = 'repeat(5, 1fr)'; 
+      }
+    }
   } else {
-     mobileAdminButton.style.display = 'none'; // Cukup sembunyikan tombol
+    // Jika BUKAN admin, pastikan tombol disembunyikan dan layout kembali normal
+    const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
+    if (mobileAdminButton) {
+      // Sembunyikan tombol
+      mobileAdminButton.style.display = 'none';
+    }
+
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+      // Kembalikan ke 4 kolom
+      bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    }
   }
 }
+
+/**
+ * Inisialisasi komponen UI dasar yang ada di SEMUA halaman (struktur lama & baru).
+ * Ini adalah fallback untuk halaman yang tidak menggunakan _layout.html.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Hanya jalankan jika initGlobalLayout TIDAK ada/dijalankan.
+  // Ini mencegah eksekusi ganda di sistem layout baru.
+  const isLayoutSystem = !!document.getElementById('page-content');
+  if (!isLayoutSystem) {
+    if (typeof initSidebar === 'function') initSidebar();
+    if (typeof initLogoutButton === 'function') initLogoutButton();
+    // Panggil initAdminFeatures setelah memastikan sesi Supabase siap.
+    supabaseClient?.auth.getSession().then(() => initAdminFeatures());
+  }
+});
 
 /**
  * Inisialisasi layout global, memuat konten halaman, dan mengelola status aktif.
