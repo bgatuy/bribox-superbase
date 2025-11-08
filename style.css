@@ -9,6 +9,9 @@ body {
   background:#f4f4f4; color:#333; line-height:1.5;
 }
 
+/* Global: hormati atribut [hidden] agar elemen benar-benar tersembunyi di semua halaman */
+[hidden]{ display:none !important; }
+
 /* =========================
    TOKENS (SERAH)
 ========================= */

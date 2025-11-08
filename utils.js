@@ -203,6 +203,12 @@ function updateBottomNavColumns(){
 document.addEventListener('DOMContentLoaded', () => {
   updateBottomNavColumns();
   window.addEventListener('resize', () => requestAnimationFrame(updateBottomNavColumns));
+  // Recompute when bottom-nav subtree/attributes change (e.g., admin toggle)
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav && typeof MutationObserver !== 'undefined'){
+    const mo = new MutationObserver(() => requestAnimationFrame(updateBottomNavColumns));
+    mo.observe(bottomNav, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden','style','class'] });
+  }
 });
 
 /**
