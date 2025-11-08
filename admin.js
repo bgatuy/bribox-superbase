@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inisialisasi fungsionalitas umum
   if (typeof initSidebar === 'function') initSidebar();
   if (typeof initLogoutButton === 'function') initLogoutButton();
+  if (typeof initAdminFeatures === 'function') initAdminFeatures();
 
   // 2. Muat data statistik
   loadAdminStats();

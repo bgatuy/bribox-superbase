@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
   else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
   if (typeof initSidebar === 'function') initSidebar();  
   if (typeof initLogoutButton === 'function') initLogoutButton();
+  if (typeof initAdminFeatures === 'function') initAdminFeatures();
 });
 
 /* ========= Query DOM ========= */

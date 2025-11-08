@@ -432,7 +432,7 @@ body[data-page="serah"] .table tbody tr.missing:hover > td{ background:#fc8c8cff
   .dashboard-header .right-slot{ grid-column:3; justify-self:end; z-index:2; }
 
   /* card & form scale */
-  html{ font-size:12px; }
+  html{ font-size:12px; zoom:90%; }
   .card{ padding:1rem; border-radius:10px; }
   .card h3{ margin-bottom:.75rem; font-size:1.05rem; line-height:1.3; }
   .form-group{ gap:.4rem; margin:.75rem 0; }
