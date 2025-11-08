@@ -22,26 +22,24 @@ const path = window.location.pathname;
 const BASE = __getAppRoot();
 if (!path.endsWith('/') && !path.endsWith('/index.html')) {
   // Gate cepat: kalau tidak ada session, langsung redirect (tanpa menunggu event)
-  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) {
       window.location.replace(BASE + 'index.html');
     } else {
-      const dashboard = document.querySelector('.dashboard');
-      if (dashboard) dashboard.style.visibility = 'visible';
-      if (typeof initAdminFeatures === 'function') initAdminFeatures();
+      // JANGAN panggil initAdminFeatures di sini.
+      // Cukup pastikan layout utama dipanggil setelah sesi valid.
+      // initGlobalLayout akan menangani sisanya, termasuk memanggil initAdminFeatures.
+      if (typeof initGlobalLayout === 'function') {
+        await initGlobalLayout();
+      }
     }
   });
 
   // Listener tetap aktif untuk menangkap SIGNED_OUT dlsb.
   supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
+    // Jika logout dari tab lain, paksa redirect.
+    if (event === 'SIGNED_OUT' || (event === 'USER_DELETED' && !session)) {
       window.location.replace(BASE + 'index.html');
-      return;
-    }
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-      const dashboard = document.querySelector('.dashboard');
-      if (dashboard) dashboard.style.visibility = 'visible';
-      if (typeof initAdminFeatures === 'function') initAdminFeatures();
     }
   });
 }
