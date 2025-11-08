@@ -151,39 +151,43 @@ async function initAdminFeatures() {
   const sidebarNav = document.querySelector('.sidebar nav');
   const bottomNav = document.querySelector('.bottom-nav');
 
-  // Jika elemen penting tidak ada, hentikan.
-  if (!mobileAdminButton || !sidebarNav || !bottomNav) return;
+  if (!sidebarNav) return;
 
-  // KUNCI PERBAIKAN:
-  // Selalu hapus link admin yang mungkin sudah ada di sidebar dari eksekusi sebelumnya.
-  // Ini mencegah link "yatim" muncul untuk non-admin.
+  // Bersihkan link admin sidebar dari eksekusi sebelumnya (kalau ada)
   const existingAdminLink = sidebarNav.querySelector('a[href*="admin.html"]');
   if (existingAdminLink) existingAdminLink.remove();
 
-  // Panggil fungsi is_admin() dari database untuk memeriksa role.
-  const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
+  const removeMobileAdmin = () => {
+    if (mobileAdminButton) mobileAdminButton.remove();
+    bottomNav?.style.removeProperty('grid-template-columns');
+  };
 
-  if (error) {
-    console.error('Gagal memeriksa status admin:', error.message);
-    // Pastikan layout kembali ke default jika ada error
-    mobileAdminButton.setAttribute('hidden', '');
-    bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
-    return;
+  // Jika Supabase belum siap, asumsikan non-admin dan hilangkan tombol admin
+  if (typeof supabaseClient === 'undefined') { removeMobileAdmin(); return; }
+
+  let isAdmin = false;
+  try {
+    const { data } = await supabaseClient.rpc('is_admin');
+    isAdmin = data === true;
+  } catch (e) {
+    console.warn('Cek admin gagal, sembunyikan fitur admin:', e?.message || e);
+    isAdmin = false;
   }
 
-  if (isAdmin === true) {
+  if (isAdmin) {
     const root = getAppRoot();
     const adminLink = document.createElement('a');
     adminLink.href = root + 'admin.html';
-    adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
+    adminLink.innerHTML = `<span class="material-icons" style="color:#facc15;">admin_panel_settings</span> Admin Panel`;
     sidebarNav.appendChild(adminLink);
-    mobileAdminButton.href = root + 'admin.html';
-    mobileAdminButton.removeAttribute('hidden');
-    bottomNav.style.gridTemplateColumns = 'repeat(5, 1fr)';
+    if (mobileAdminButton) {
+      mobileAdminButton.href = root + 'admin.html';
+      mobileAdminButton.removeAttribute('hidden');
+    }
+    try { document.body.classList.add('is-admin'); } catch {}
   } else {
-    // Jika BUKAN admin, secara eksplisit sembunyikan tombol DAN kembalikan grid ke 4 kolom.
-    mobileAdminButton.setAttribute('hidden', '');
-    bottomNav.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    removeMobileAdmin();
+    try { document.body.classList.remove('is-admin'); } catch {}
   }
 }
 
