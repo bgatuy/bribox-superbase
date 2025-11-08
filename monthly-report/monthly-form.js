@@ -57,6 +57,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const defaultMonth = () => `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
   const defaultDate  = () => `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
+  // Normalisasi jam ke HH:MM (tanpa detik)
+  const toHHMMnorm = (v)=>{
+    if(!v) return '';
+    const m = String(v).match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    return m ? `${pad(m[1])}:${m[2]}` : String(v);
+  };
+
   const qs = new URL(location.href).searchParams;
   const editId = qs.get('edit');
 
@@ -168,14 +175,18 @@ document.addEventListener('DOMContentLoaded', function () {
       detail.value = data.detail || '';
       status.value = data.status || 'Done';
 
-      jamMasuk.value = data.jam_masuk || '';
-      jamBerangkat.value = data.jam_berangkat || '';
-      jamTiba.value = data.jam_tiba || '';
-      jamMulai.value = data.jam_mulai || '';
-      jamSelesai.value = data.jam_selesai || '';
+      jamMasuk.value = toHHMMnorm(data.jam_masuk || '');
+      jamBerangkat.value = toHHMMnorm(data.jam_berangkat || '');
+      jamTiba.value = toHHMMnorm(data.jam_tiba || '');
+      jamMulai.value = toHHMMnorm(data.jam_mulai || '');
+      jamSelesai.value = toHHMMnorm(data.jam_selesai || '');
 
       durasiPenyelesaian.value = (function(){
-        const m = Math.max(0, ((() => { const ms = (data.jam_mulai||'').split(':'); const ss = (data.jam_selesai||'').split(':'); if(ms.length===2&&ss.length===2){ const a=+ms[0]*60+ +ms[1]; const b=+ss[0]*60+ +ss[1]; return (b-a+1440)%1440; } return 0; })()));
+        const ms = String(data.jam_mulai||'').match(/^(\d{1,2}):(\d{2})/);
+        const ss = String(data.jam_selesai||'').match(/^(\d{1,2}):(\d{2})/);
+        const a = ms ? (+ms[1])*60 + (+ms[2]) : null;
+        const b = ss ? (+ss[1])*60 + (+ss[2]) : null;
+        const m = (a!=null && b!=null) ? ((b - a + 1440) % 1440) : 0;
         const hh = Math.floor(m/60), mm = m%60; return `${hh}:${pad(mm)}`;
       })();
       jarak.value = data.jarak_km ?? 0;
@@ -232,11 +243,11 @@ document.addEventListener('DOMContentLoaded', function () {
       jenis: jenis.value,
       detail: (detail.value||'').trim(),
       status: status.value,
-      jam_masuk: jamMasuk.value || null,
-      jam_berangkat: jamBerangkat.value || null,
-      jam_tiba: jamTiba.value || null,
-      jam_mulai: jamMulai.value || null,
-      jam_selesai: jamSelesai.value || null,
+      jam_masuk: toHHMMnorm(jamMasuk.value) || null,
+      jam_berangkat: toHHMMnorm(jamBerangkat.value) || null,
+      jam_tiba: toHHMMnorm(jamTiba.value) || null,
+      jam_mulai: toHHMMnorm(jamMulai.value) || null,
+      jam_selesai: toHHMMnorm(jamSelesai.value) || null,
       durasi_penyelesaian_min: durPenyMin,
       jarak_km: parseFloat(jarak.value || '0') || 0,
       waktu_tempuh_min: tempuhMin,
@@ -265,3 +276,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 })();
+

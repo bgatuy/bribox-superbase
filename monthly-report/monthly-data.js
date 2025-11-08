@@ -83,9 +83,16 @@
   // dekat fungsi esc, sebelum renderTable
   function fmtJam(v){
     if (v == null || v === "") return "";
-    const m = String(v).match(/^(\d{1,2}):(\d{2})$/);
-    if (!m) return String(v);            // bukan "HH:MM", balikin apa adanya
-    return `${parseInt(m[1], 10)}:${m[2]}`;  // 07:05 -> 7:05, 0:05 -> 0:05
+    const m = String(v).match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!m) return String(v);
+    return `${parseInt(m[1], 10)}:${m[2]}`;  // normalisasi ke H:MM (tanpa detik)
+  }
+
+  // Normalisasi ke HH:MM untuk penyimpanan DB
+  function asHHMM(v){
+    if (!v) return '';
+    const m = String(v).match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    return m ? `${pad(m[1])}:${m[2]}` : String(v);
   }
 
   function renderTable(rows){
@@ -170,9 +177,9 @@
   // ===== Helpers untuk edit inline
   function timeToInputValue(v){
     if(!v) return '';
-    const m = String(v).match(/^(\d{1,2}):(\d{2})$/);
+    const m = String(v).match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     if(!m) return '';
-    return `${pad(m[1])}:${m[2]}`;
+    return `${pad(m[1])}:${m[2]}`; // konversi ke HH:MM agar input type=time valid tanpa detik
   }
   function parseTimeToMin(t){
     if(!t) return null;
@@ -266,11 +273,11 @@
       const date = (q('.inp-date').value||'').trim();
       if(!date){ showToast('Tanggal wajib diisi.', 3000, 'warn'); return; }
 
-      const jamMasuk      = (q('.inp-jam-masuk').value||'').trim() || null;
-      const jamBerangkat  = (q('.inp-jam-berangkat').value||'').trim() || null;
-      const jamTiba       = (q('.inp-jam-tiba').value||'').trim() || null;
-      const jamMulai      = (q('.inp-jam-mulai').value||'').trim() || null;
-      const jamSelesai    = (q('.inp-jam-selesai').value||'').trim() || null;
+      const jamMasuk      = asHHMM((q('.inp-jam-masuk').value||'').trim()) || null;
+      const jamBerangkat  = asHHMM((q('.inp-jam-berangkat').value||'').trim()) || null;
+      const jamTiba       = asHHMM((q('.inp-jam-tiba').value||'').trim()) || null;
+      const jamMulai      = asHHMM((q('.inp-jam-mulai').value||'').trim()) || null;
+      const jamSelesai    = asHHMM((q('.inp-jam-selesai').value||'').trim()) || null;
 
       const berangkatMin = parseTimeToMin(jamBerangkat);
       const tibaMin      = parseTimeToMin(jamTiba);
