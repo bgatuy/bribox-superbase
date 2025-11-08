@@ -147,85 +147,35 @@ function initLogoutButton() {
  * Fungsi ini harus dipanggil setelah user terautentikasi.
  */
 async function initAdminFeatures() {
+  const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
   const sidebarNav = document.querySelector('.sidebar nav');
-  let bottomNav = document.querySelector('.bottom-nav');
-  let mobileAdminButton = bottomNav?.querySelector('.bn-admin');
+
+  // Jika elemen penting tidak ada, hentikan.
+  if (!mobileAdminButton || !sidebarNav) return;
 
   // Panggil fungsi is_admin() dari database untuk memeriksa role.
   const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
 
   if (error) {
     console.error('Gagal memeriksa status admin:', error.message);
-    if (mobileAdminButton) {
-      mobileAdminButton.setAttribute('hidden', '');
-      mobileAdminButton.style.removeProperty('display');
-    }
-    requestAnimationFrame(updateBottomNavColumns);
+    mobileAdminButton.style.display = 'none'; // Sembunyikan jika error
     return;
   }
 
   if (isAdmin === true) {
     const root = getAppRoot();
-    if (sidebarNav && !sidebarNav.querySelector('a[href*="admin.html"]')) {
+    if (!sidebarNav.querySelector('a[href*="admin.html"]')) {
       const adminLink = document.createElement('a');
       adminLink.href = root + 'admin.html';
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
       sidebarNav.appendChild(adminLink);
     }
-    // Pastikan bottom-nav sudah ada. Jika belum, tunggu sampai ada lalu set.
-    if (!bottomNav) {
-      const wait = new MutationObserver(() => {
-        bottomNav = document.querySelector('.bottom-nav');
-        if (bottomNav) {
-          mobileAdminButton = bottomNav.querySelector('.bn-admin');
-          if (mobileAdminButton) {
-            mobileAdminButton.href = root + 'admin.html';
-            mobileAdminButton.removeAttribute('hidden');
-            mobileAdminButton.style.display = 'flex';
-          }
-          requestAnimationFrame(updateBottomNavColumns);
-          wait.disconnect();
-        }
-      });
-      wait.observe(document.body, { childList:true, subtree:true });
-    } else if (mobileAdminButton) {
-      mobileAdminButton.href = root + 'admin.html';
-      mobileAdminButton.removeAttribute('hidden');
-      mobileAdminButton.style.display = 'flex';
-    }
+    mobileAdminButton.href = root + 'admin.html';
+    mobileAdminButton.style.display = 'flex'; // Cukup tampilkan tombol
   } else {
-    if (mobileAdminButton) {
-      mobileAdminButton.setAttribute('hidden', '');
-      mobileAdminButton.style.removeProperty('display');
-    }
+     mobileAdminButton.style.display = 'none'; // Cukup sembunyikan tombol
   }
-  requestAnimationFrame(updateBottomNavColumns);
 }
-
-function updateBottomNavColumns(){
-  try{
-    const bottomNav = document.querySelector('.bottom-nav');
-    if(!bottomNav) return;
-    const visible = Array.from(bottomNav.children).filter(el => {
-      if (el.hasAttribute('hidden')) return false;
-      const st = window.getComputedStyle(el);
-      return st.display !== 'none' && st.visibility !== 'collapse';
-    });
-    const n = Math.max(visible.length, 1);
-    bottomNav.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
-  }catch(e){ }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  updateBottomNavColumns();
-  window.addEventListener('resize', () => requestAnimationFrame(updateBottomNavColumns));
-  // Recompute when bottom-nav subtree/attributes change (e.g., admin toggle)
-  const bottomNav = document.querySelector('.bottom-nav');
-  if (bottomNav && typeof MutationObserver !== 'undefined'){
-    const mo = new MutationObserver(() => requestAnimationFrame(updateBottomNavColumns));
-    mo.observe(bottomNav, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden','style','class'] });
-  }
-});
 
 /**
  * Inisialisasi layout global, memuat konten halaman, dan mengelola status aktif.
@@ -348,6 +298,10 @@ async function initGlobalLayout() {
         a.classList.add('active');
       }
     });
+
+    // 7. Panggil initAdminFeatures SETELAH semua layout siap.
+    // Ini adalah langkah kunci untuk mencegah race condition.
+    await initAdminFeatures();
 
   } catch (error) {
     console.error('Gagal memuat halaman:', error);
