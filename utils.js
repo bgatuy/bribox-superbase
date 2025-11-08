@@ -147,9 +147,9 @@ function initLogoutButton() {
  * Fungsi ini harus dipanggil setelah user terautentikasi.
  */
 async function initAdminFeatures() {
-  const bottomNav = document.querySelector('.bottom-nav');
-  const mobileAdminButton = bottomNav?.querySelector('.bn-admin');
   const sidebarNav = document.querySelector('.sidebar nav');
+  let bottomNav = document.querySelector('.bottom-nav');
+  let mobileAdminButton = bottomNav?.querySelector('.bn-admin');
 
   // Panggil fungsi is_admin() dari database untuk memeriksa role.
   const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
@@ -172,7 +172,23 @@ async function initAdminFeatures() {
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
       sidebarNav.appendChild(adminLink);
     }
-    if (mobileAdminButton) {
+    // Pastikan bottom-nav sudah ada. Jika belum, tunggu sampai ada lalu set.
+    if (!bottomNav) {
+      const wait = new MutationObserver(() => {
+        bottomNav = document.querySelector('.bottom-nav');
+        if (bottomNav) {
+          mobileAdminButton = bottomNav.querySelector('.bn-admin');
+          if (mobileAdminButton) {
+            mobileAdminButton.href = root + 'admin.html';
+            mobileAdminButton.removeAttribute('hidden');
+            mobileAdminButton.style.display = 'flex';
+          }
+          requestAnimationFrame(updateBottomNavColumns);
+          wait.disconnect();
+        }
+      });
+      wait.observe(document.body, { childList:true, subtree:true });
+    } else if (mobileAdminButton) {
       mobileAdminButton.href = root + 'admin.html';
       mobileAdminButton.removeAttribute('hidden');
       mobileAdminButton.style.display = 'flex';
