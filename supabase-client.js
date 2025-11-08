@@ -12,8 +12,14 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // INI ADALAH SCRIPT "PENJAGA GERBANG"
 // ==================================================
 // Cek jika kita TIDAK sedang di halaman login (yaitu bukan di index.html atau /)
+function __getAppRoot() {
+  const p = window.location.pathname || '/';
+  const idx = p.indexOf('/monthly-report/');
+  if (idx >= 0) return p.slice(0, idx + 1);
+  return p.replace(/[^\/]*$/, '');
+}
 const path = window.location.pathname;
-const BASE = path.replace(/[^\/]*$/, '');
+const BASE = __getAppRoot();
 if (!path.endsWith('/') && !path.endsWith('/index.html')) {
   // Gate cepat: kalau tidak ada session, langsung redirect (tanpa menunggu event)
   supabaseClient.auth.getSession().then(({ data: { session } }) => {

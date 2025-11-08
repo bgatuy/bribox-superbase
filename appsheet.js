@@ -170,11 +170,24 @@ copyBtn?.addEventListener('click', async () => {
     const user = session.user;
     const filePath = `${user.id}/${contentHash}.pdf`;
 
-    // 4. Upload file ke Supabase Storage
-    const { error: uploadError } = await supabaseClient.storage
-      .from('pdf-forms')
-      .upload(filePath, currentFile, { upsert: true });
-    if (uploadError) throw uploadError;
+    // 4. Upload file ke Supabase Storage (dengan retry & fallback ArrayBuffer)
+    async function uploadWithRetryAB(path, file, options = {}) {
+      const bucket = supabaseClient.storage.from('pdf-forms');
+      const tryBlob = () => bucket.upload(path, file, options);
+      const tryArrayBuffer = async () => bucket.upload(path, await file.arrayBuffer(), options);
+      let res = await tryBlob();
+      if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
+        await new Promise(r => setTimeout(r, 500));
+        res = await tryBlob();
+      }
+      if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
+        await new Promise(r => setTimeout(r, 400));
+        res = await tryArrayBuffer();
+      }
+      return res;
+    }
+    const { error: uploadError } = await uploadWithRetryAB(filePath, currentFile, { upsert: true, contentType: currentFile.type || 'application/pdf' });
+    if (uploadError) throw new Error(`Upload gagal: ${uploadError.message}`);
 
     // 5. Simpan semua info ke database (tanpa metadata TTD)
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
@@ -194,7 +207,12 @@ copyBtn?.addEventListener('click', async () => {
     showToast("Berhasil disimpan ke server.", 3000, "success");
   } catch (err) {
     console.error("Copy/Save Error:", err);
-    showToast(`Gagal menyimpan: ${err.message}`, 4500, 'warn');
+    const msg = String(err?.message || err || '').trim();
+    if (/failed to fetch/i.test(msg)) {
+      showToast("Upload gagal: koneksi ke Supabase Storage terputus/terblokir. Coba matikan VPN/Private DNS/Ad-block, gunakan Wi‑Fi yang sama dengan laptop, atau coba ulang.", 6000, 'warn');
+    } else {
+      showToast(`Gagal menyimpan: ${msg}`, 4500, 'warn');
+    }
   } finally {
   }
 });

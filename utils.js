@@ -22,6 +22,14 @@
   window.hideSpinner = () => { spinner.style.display = 'none'; };
 })();
 
+// Hitung root app agar redirect/link bekerja dari subfolder (mis. monthly-report/*)
+function getAppRoot() {
+  const p = window.location.pathname || '/';
+  const idx = p.indexOf('/monthly-report/');
+  if (idx >= 0) return p.slice(0, idx + 1); // contoh: /app/
+  return p.replace(/[^\/]*$/, '');          // contoh: /app/
+}
+
 /**
  * Menampilkan notifikasi toast.
  * @param {string} message Pesan yang akan ditampilkan.
@@ -117,9 +125,9 @@ function initLogoutButton() {
       } catch {}
     } finally {
       hideSpinner?.();
-      // Redirect pakai BASE relatif agar aman di subfolder
-      const base = window.location.pathname.replace(/[^\/]*$/, '');
-      window.location.replace(base + 'index.html');
+      // Redirect ke index di root app
+      const root = getAppRoot();
+      window.location.replace(root + 'index.html');
     }
   };
 
@@ -152,11 +160,12 @@ async function initAdminFeatures() {
   }
 
   if (isAdmin === true) {
+    const root = getAppRoot();
     // Tampilkan link di sidebar (desktop)
     const nav = document.querySelector('.sidebar nav');
     if (nav && !nav.querySelector('a[href="admin.html"]')) {
       const adminLink = document.createElement('a');
-      adminLink.href = 'admin.html';
+      adminLink.href = root + 'admin.html';
       adminLink.innerHTML = `<span class="material-icons" style="color: #facc15;">admin_panel_settings</span> Admin Panel`;
       
       nav.appendChild(adminLink);
@@ -165,6 +174,7 @@ async function initAdminFeatures() {
     // Tampilkan tombol di navigasi bawah (mobile)
     const mobileAdminButton = document.querySelector('.bottom-nav .bn-admin');
     if (mobileAdminButton) {
+      mobileAdminButton.href = root + 'admin.html';
       // Tampilkan tombol dengan mengubah display style
       mobileAdminButton.style.display = 'flex';
 

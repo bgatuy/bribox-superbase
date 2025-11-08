@@ -33,12 +33,25 @@ let isUploading = false;
 
 // Upload helper dengan 1x retry untuk kasus network error (mobile)
 async function uploadWithRetry(filePath, file, options = {}) {
-  const attempt = () => supabaseClient.storage.from('pdf-forms').upload(filePath, file, options);
-  let res = await attempt();
+  const bucket = supabaseClient.storage.from('pdf-forms');
+
+  const tryBlob = () => bucket.upload(filePath, file, options);
+  const tryArrayBuffer = async () => {
+    const buf = await file.arrayBuffer();
+    return bucket.upload(filePath, buf, options);
+  };
+
+  // 1) Coba langsung pakai File/Blob
+  let res = await tryBlob();
   if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
-    // backoff singkat lalu ulang
+    // 2) Backoff lalu ulang (Blob)
     await new Promise(r => setTimeout(r, 500));
-    res = await attempt();
+    res = await tryBlob();
+  }
+  if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
+    // 3) Fallback: kirim sebagai ArrayBuffer (beberapa browser HP lebih stabil)
+    await new Promise(r => setTimeout(r, 400));
+    res = await tryArrayBuffer();
   }
   return res;
 }
