@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initSidebar === 'function') initSidebar();  
   if (typeof initLogoutButton === 'function') initLogoutButton();
   if (typeof initAdminFeatures === 'function') initAdminFeatures();
+  // Setup field lokasi (input + datalist, lazy populate)
+  try { setupLokasiField(); } catch {}
 });
 
 /* ========= Query DOM ========= */
@@ -28,6 +30,84 @@ const pdfInput     = document.getElementById("pdfFile");
 const output       = document.getElementById("output");
 const copyBtn      = document.getElementById("copyBtn");
 const lokasiSelect = document.getElementById("inputLokasi");
+let lokasiSearch = null;
+
+// Daftar lokasi (sinkron dengan Trackmate)
+const LOCATIONS = [
+  "BRI 1 Lt. Split","BRI 1 Lt. 2","BRI 1 Lt. 3","BRI 1 Lt. 4","BRI 1 Lt. 5","BRI 1 Lt. 6","BRI 1 Lt. 7","BRI 1 Lt. 8","BRI 1 Lt. 9","BRI 1 Lt. 10","BRI 1 Lt. 11","BRI 1 Lt. 12","BRI 1 Lt. 13","BRI 1 Lt. 14","BRI 1 Lt. 15","BRI 1 Lt. 16","BRI 1 Lt. 17","BRI 1 Lt. 18","BRI 1 Lt. 19","BRI 1 Lt. 20",
+  "BRI 2 Lt. Basement","BRI 2 Lt. 2","BRI 2 Lt. 3","BRI 2 Lt. 4","BRI 2 Lt. 5","BRI 2 Lt. 6","BRI 2 Lt. 7","BRI 2 Lt. 8","BRI 2 Lt. 9","BRI 2 Lt. 10","BRI 2 Lt. 11","BRI 2 Lt. 12","BRI 2 Lt. 13","BRI 2 Lt. 14","BRI 2 Lt. 15","BRI 2 Lt. 16","BRI 2 Lt. 17","BRI 2 Lt. 18","BRI 2 Lt. 19","BRI 2 Lt. 20","BRI 2 Lt. 21","BRI 2 Lt. 22","BRI 2 Lt. 23","BRI 2 Lt. 24","BRI 2 Lt. 25","BRI 2 Lt. 26","BRI 2 Lt. 27","BRI 2 Lt. 28","BRI 2 Lt. 29","BRI 2 Lt. 30","BRI 2 Lt. 31",
+  "Gd. Parkir BRI Lt. 1","Gd. Parkir BRI Lt. 5","Gd. Parkir BRI Lt. 8",
+  "Menara Brilian Lt. 5","Menara Brilian Lt. 8","Menara Brilian Lt. 9","Menara Brilian Lt. 26","Menara Brilian Lt. 27","Menara Brilian Lt. 28","Menara Brilian Lt. 29","Menara Brilian Lt. 30","Menara Brilian Lt. 31","Menara Brilian Lt. 32","Menara Brilian Lt. 33","Menara Brilian Lt. 37","Menara Brilian Lt. 40",
+  "PSCF Ragunan Lt. 1","PSCF Ragunan Lt. 2","PSCF Ragunan Lt. 3",
+  "GTI Ragunan Lt. 5","GTI Ragunan Lt. 6","GTI Ragunan Lt. 7","GTI Ragunan Lt. 8"
+];
+
+function populateLokasi(select, list){
+  if (!select) return;
+  select.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
+  const frag = document.createDocumentFragment();
+  for (const name of list){
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    frag.appendChild(opt);
+  }
+  select.appendChild(frag);
+}
+
+function setupLokasiField(){
+  if (!lokasiSelect) return;
+  if (lokasiSelect.tagName === 'INPUT'){
+    const listId = lokasiSelect.getAttribute('list');
+    if (listId){ try{ document.getElementById(listId)?.remove(); }catch{}; lokasiSelect.removeAttribute('list'); }
+    attachCombo(lokasiSelect, LOCATIONS);
+    return;
+  }
+  // Fallback (SELECT)
+  let populated = false;
+  const ensure = ()=>{ if(populated) return; populated = true; populateLokasi(lokasiSelect, LOCATIONS); };
+  ['focus','mousedown','touchstart','keydown'].forEach(ev=> lokasiSelect.addEventListener(ev, ensure, { once:true }));
+}
+
+function attachCombo(input, items){
+  const popup = document.createElement('div');
+  popup.className = 'combo-popup';
+  popup.hidden = true;
+  input.parentElement?.appendChild(popup);
+
+  let filtered = items.slice();
+  let active = -1;
+  const render = ()=>{
+    popup.innerHTML = filtered.map((n,i)=>`<div class="combo-item${i===active?' active':''}" data-val="${n}">${n}</div>`).join('');
+  };
+  const open = ()=>{
+    filtered = filter(input.value); active = -1; render();
+    try {
+      popup.style.width = input.offsetWidth + 'px';
+      popup.style.left  = input.offsetLeft + 'px';
+      popup.style.top   = (input.offsetTop + input.offsetHeight + 4) + 'px';
+    } catch {}
+    popup.hidden = false;
+  };
+  const close = ()=>{ popup.hidden = true; };
+  const filter = (q)=>{ q=(q||'').toLowerCase(); return q? items.filter(n=> n.toLowerCase().includes(q)) : items; };
+
+  input.addEventListener('focus', open);
+  input.addEventListener('click', ()=>{ if(popup.hidden) open(); });
+  input.addEventListener('input', ()=>{ filtered = filter(input.value); active = -1; render(); popup.hidden = false; });
+  input.addEventListener('keydown', (e)=>{
+    if (popup.hidden && (e.key==='ArrowDown' || e.key==='Enter')) { open(); e.preventDefault(); return; }
+    if (e.key==='ArrowDown'){ active = Math.min(filtered.length-1, active+1); render(); e.preventDefault(); }
+    else if (e.key==='ArrowUp'){ active = Math.max(0, active-1); render(); e.preventDefault(); }
+    else if (e.key==='Enter'){
+      if (active>=0 && filtered[active]){ input.value = filtered[active]; input.dispatchEvent(new Event('change',{bubbles:true})); close(); e.preventDefault(); }
+    } else if (e.key==='Escape'){ close(); }
+  });
+  popup.addEventListener('mousedown', (e)=>{
+    const item = e.target.closest('.combo-item'); if(!item) return;
+    const val = item.getAttribute('data-val')||''; input.value = val; input.dispatchEvent(new Event('change',{bubbles:true})); close();
+  });
+  document.addEventListener('click', (e)=>{ if(!popup.hidden && !popup.contains(e.target) && e.target!==input) close(); });
+}
 
 /* ========= State ========= */
 let lokasiTerpilih = "", unitKerja = "-", kantor = "-", tanggal = "-", problem = "-",
