@@ -22,6 +22,86 @@
   window.hideSpinner = () => { spinner.style.display = 'none'; };
 })();
 
+(function initPageTransitions(){
+  const doc = document.documentElement;
+  const hasSmooth = doc.classList.contains('has-smooth');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const enableTransitions = hasSmooth && !reduceMotion.matches;
+  const markReady = ()=>{
+    doc.classList.remove('is-page-booting');
+    doc.classList.remove('is-page-leaving');
+    doc.classList.add('is-page-ready');
+  };
+  const readyHandler = ()=> requestAnimationFrame(markReady);
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    readyHandler();
+  } else {
+    document.addEventListener('DOMContentLoaded', readyHandler, { once:true });
+  }
+
+  window.addEventListener('pageshow', (evt)=>{
+    if (evt.persisted) {
+      markReady();
+    } else {
+      doc.classList.remove('is-page-leaving');
+    }
+  });
+
+  if (!enableTransitions) return;
+
+  const getPageDelay = ()=>{
+    try {
+      const raw = getComputedStyle(doc).getPropertyValue('--duration-page') || '';
+      const parsed = parseFloat(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 320;
+    } catch {
+      return 320;
+    }
+  };
+
+  function shouldSkip(link, url){
+    if (!link || !url) return true;
+    if ('noTransition' in link.dataset) return true;
+    if (link.target && link.target !== '_self') return true;
+    if (link.hasAttribute('download')) return true;
+    if (!/^https?:$/.test(url.protocol)) return true;
+    if (url.origin !== window.location.origin) return true;
+    const sameDoc = url.pathname === window.location.pathname && url.search === window.location.search;
+    if (sameDoc && (!url.hash || url.hash === window.location.hash)) return true;
+    return false;
+  }
+
+  document.addEventListener('click', (event)=>{
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return; // only left click
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const anchor = event.target.closest('a[href]');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href') || '';
+    if (!href || href.startsWith('#')) return;
+
+    let url;
+    try {
+      url = new URL(anchor.href, window.location.href);
+    } catch {
+      return;
+    }
+
+    if (shouldSkip(anchor, url)) return;
+
+    event.preventDefault();
+    if (doc.classList.contains('is-page-leaving')) return;
+
+    doc.classList.remove('is-page-ready');
+    doc.classList.add('is-page-leaving');
+
+    const delay = Math.max(120, getPageDelay());
+    window.setTimeout(()=>{ window.location.href = url.href; }, delay);
+  });
+})();
+
 // Hitung root app agar redirect/link bekerja dari subfolder (mis. monthly-report/*)
 function getAppRoot() {
   const p = window.location.pathname || '/';

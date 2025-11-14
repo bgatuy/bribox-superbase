@@ -1,16 +1,26 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="has-smooth is-page-booting">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Trackmate - BRIBOX KANPUS</title>
+  <title>BRIBOX KANPUS</title>
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <script>
-    // Pre-apply admin flag to avoid layout shift
-    (function(){ try{ if(localStorage.getItem('is_admin_flag')==='1') document.documentElement.classList.add('is-admin'); }catch{}}
-    )();
+    (function(){
+      const root = document.documentElement;
+      try {
+        if (localStorage.getItem('is_admin_flag') === '1') root.classList.add('is-admin');
+      } catch {}
+      if (!root.classList.contains('has-smooth')) root.classList.add('has-smooth');
+      const reveal = ()=> {
+        root.classList.add('is-page-ready');
+        root.classList.remove('is-page-booting');
+      };
+      if (window.requestAnimationFrame) window.requestAnimationFrame(reveal);
+      else setTimeout(reveal, 0);
+    })();
   </script>
 </head>
 <body data-page="trackmate">

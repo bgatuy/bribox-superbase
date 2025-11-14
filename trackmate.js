@@ -89,10 +89,13 @@ function attachCombo(input, items){
 
   let filtered = items.slice();
   let active = -1;
+  let isOpen = false;
+  let hideTimer = null;
   const render = ()=>{
     popup.innerHTML = filtered.map((n,i)=>`<div class="combo-item${i===active?' active':''}" data-val="${n}">${n}</div>`).join('');
   };
   const open = ()=>{
+    if (isOpen && !popup.hidden) return;
     filtered = filter(input.value); active = -1; render();
     try {
       popup.style.width = input.offsetWidth + 'px';
@@ -100,15 +103,28 @@ function attachCombo(input, items){
       popup.style.top   = (input.offsetTop + input.offsetHeight + 4) + 'px';
     } catch {}
     popup.hidden = false;
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    requestAnimationFrame(()=> popup.classList.add('is-visible'));
+    isOpen = true;
   };
-  const close = ()=>{ popup.hidden = true; };
+  const close = ()=>{
+    if (!isOpen) return;
+    isOpen = false;
+    popup.classList.remove('is-visible');
+    hideTimer = window.setTimeout(()=>{ if(!isOpen) popup.hidden = true; }, 220);
+  };
   const filter = (q)=>{ q=(q||'').toLowerCase(); return q? items.filter(n=> n.toLowerCase().includes(q)) : items; };
+  const ensureOpen = ()=>{ if (!isOpen) open(); };
 
   input.addEventListener('focus', open);
-  input.addEventListener('click', ()=>{ if(popup.hidden) open(); });
-  input.addEventListener('input', ()=>{ filtered = filter(input.value); active = -1; render(); popup.hidden = false; });
+  input.addEventListener('click', ()=>{ if(!isOpen) open(); });
+  input.addEventListener('input', ()=>{
+    filtered = filter(input.value); active = -1; render();
+    ensureOpen();
+  });
   input.addEventListener('keydown', (e)=>{
-    if (popup.hidden && (e.key==='ArrowDown' || e.key==='Enter')) { open(); e.preventDefault(); return; }
+    if (!isOpen && (e.key==='ArrowDown' || e.key==='Enter')) { open(); e.preventDefault(); return; }
+    if (!isOpen) return;
     if (e.key==='ArrowDown'){ active = Math.min(filtered.length-1, active+1); render(); e.preventDefault(); }
     else if (e.key==='ArrowUp'){ active = Math.max(0, active-1); render(); e.preventDefault(); }
     else if (e.key==='Enter'){
@@ -119,7 +135,7 @@ function attachCombo(input, items){
     const item = e.target.closest('.combo-item'); if(!item) return;
     const val = item.getAttribute('data-val')||''; input.value = val; input.dispatchEvent(new Event('change',{bubbles:true})); close();
   });
-  document.addEventListener('click', (e)=>{ if(!popup.hidden && !popup.contains(e.target) && e.target!==input) close(); });
+  document.addEventListener('click', (e)=>{ if(isOpen && !popup.contains(e.target) && e.target!==input) close(); });
 }
 
 // Debounce flag untuk mencegah double-upload di mobile
