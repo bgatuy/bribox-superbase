@@ -193,14 +193,7 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
 }
 .header-logout-btn.avatar-loading{
   opacity: 0.6;
-}
-.header-logout-btn.avatar-loading::after{
-  content:"";
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e5e7eb;
-  display: block;
+  pointer-events: none;
 }
 
 

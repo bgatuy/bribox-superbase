@@ -179,6 +179,7 @@ function initSidebar() {
 function initLogoutButton() {
   const headerLogoutBtn = document.getElementById('btnLogout');
   const mobileLogoutBtn = document.getElementById('btnLogoutMobile');
+  const placeholderAvatar = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
   // Fungsi logout bersama
   const handleLogout = async () => {
@@ -215,36 +216,16 @@ function initLogoutButton() {
 
   // Tambahkan event listener ke tombol logout di header
   if (headerLogoutBtn) {
-    // Bersihkan konten awal agar ikon bawaan tidak sempat muncul
-    headerLogoutBtn.innerHTML = '';
-    headerLogoutBtn.classList.add('avatar-loading');
-
+    const avatarImg = headerLogoutBtn.querySelector('.logout-avatar');
     headerLogoutBtn.addEventListener('click', handleLogout);
-    const renderIconFallback = () => {
-      headerLogoutBtn.innerHTML = '<span class="material-icons">logout</span>';
-      headerLogoutBtn.title = 'Logout';
-      headerLogoutBtn.classList.remove('has-avatar', 'avatar-loading');
-    };
-    const renderSkeleton = () => {
-      headerLogoutBtn.innerHTML = '';
-      headerLogoutBtn.classList.add('avatar-loading');
-    };
-    const renderAvatar = (avatarUrl, displayName) => {
-      if (!avatarUrl) { renderIconFallback(); return; }
-      const img = document.createElement('img');
-      img.src = avatarUrl;
-      img.alt = displayName || 'User';
-      img.loading = 'lazy';
-      img.className = 'logout-avatar';
-      img.referrerPolicy = 'no-referrer';
-      img.onerror = () => {
-        headerLogoutBtn.classList.remove('has-avatar');
-        renderIconFallback();
-      };
-      headerLogoutBtn.innerHTML = '';
-      headerLogoutBtn.appendChild(img);
-      headerLogoutBtn.title = `${displayName || 'User'} (Logout)`;
-      headerLogoutBtn.classList.add('has-avatar');
+
+    const applyAvatar = (url, name) => {
+      if (!avatarImg) return;
+      const finalUrl = url || placeholderAvatar;
+      avatarImg.src = finalUrl;
+      avatarImg.alt = (name || 'User') + (url ? ' (Logout)' : '');
+      headerLogoutBtn.title = url ? `${name || 'User'} (Logout)` : 'Logout';
+      headerLogoutBtn.classList.toggle('has-avatar', !!url);
       headerLogoutBtn.classList.remove('avatar-loading');
     };
 
@@ -255,39 +236,36 @@ function initLogoutButton() {
       cachedUrl = localStorage.getItem('user_avatar_url') || '';
       cachedName = localStorage.getItem('user_display_name') || '';
     } catch {}
-    if (cachedUrl) renderAvatar(cachedUrl, cachedName); else renderSkeleton();
+    applyAvatar(cachedUrl, cachedName);
+    headerLogoutBtn.classList.add('avatar-loading');
 
-    // Render foto profil (jika tersedia dari metadata, mis. Google)
+    // Render foto profil (jika tersedia dari metadata, mis. Google/SSO)
     (async () => {
-      if (typeof supabaseClient === 'undefined') {
-        if (!cachedUrl) renderIconFallback();
-        return;
-      }
+      if (typeof supabaseClient === 'undefined') return;
       try {
         const { data } = await supabaseClient.auth.getUser();
         const user = data?.user;
         const meta = user?.user_metadata || {};
         const avatarUrl = meta.picture || meta.avatar_url || '';
         const displayName = meta.full_name || meta.name || user?.email || 'User';
-        if (!avatarUrl) {
-          renderIconFallback();
+        if (avatarUrl) {
+          applyAvatar(avatarUrl, displayName);
+          try {
+            localStorage.setItem('user_avatar_url', avatarUrl);
+            localStorage.setItem('user_display_name', displayName);
+          } catch {}
+        } else {
+          applyAvatar('', '');
           try {
             localStorage.removeItem('user_avatar_url');
             localStorage.removeItem('user_display_name');
           } catch {}
-          return;
         }
-        renderAvatar(avatarUrl, displayName);
-        try {
-          localStorage.setItem('user_avatar_url', avatarUrl);
-          localStorage.setItem('user_display_name', displayName);
-        } catch {}
       } catch (err) {
         console.warn('Gagal memuat avatar user:', err?.message || err);
-        if (!cachedUrl) renderIconFallback();
+        if (!cachedUrl) applyAvatar('', '');
       } finally {
         headerLogoutBtn.classList.remove('avatar-loading');
-        if (!headerLogoutBtn.innerHTML.trim()) renderIconFallback();
       }
     })();
   }
