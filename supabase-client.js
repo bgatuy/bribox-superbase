@@ -48,6 +48,23 @@ if (!path.endsWith('/') && !path.endsWith('/index.html')) {
         }
       }
 
+      // Auto logout saat idle lama (2 jam)
+      if (!window.__idleTimeoutSetup) {
+        window.__idleTimeoutSetup = true;
+        const IDLE_LIMIT_MS = 2 * 60 * 60 * 1000;
+        let idleTimer;
+        const activityEvents = ['mousemove', 'keydown', 'scroll', 'touchstart', 'visibilitychange'];
+        const resetIdleTimer = () => {
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(async () => {
+            try { await supabaseClient.auth.signOut(); } catch {}
+            window.location.replace(BASE + 'index.html?reason=idle');
+          }, IDLE_LIMIT_MS);
+        };
+        activityEvents.forEach(evt => document.addEventListener(evt, resetIdleTimer, { passive: true }));
+        resetIdleTimer();
+      }
+
       // Jangan panggil initGlobalLayout sembarang halaman.
       // Hanya jalankan bila marker elemen layout tersedia.
       const hasLayoutAnchor = document.getElementById('page-content');
