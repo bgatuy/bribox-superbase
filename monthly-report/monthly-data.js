@@ -369,7 +369,7 @@
   function tanggalLabel(y,m,d){ const dt=new Date(y,m-1,d); return `${HARI_ID[dt.getDay()]}, ${pad2(d)} ${BULAN_ID[m-1]} ${y}`; }
   const hmToExcelTime = (hm)=> {
     if(!hm) return null;
-    const m = String(hm).match(/^(\d{1,2}):(\d{2})$/);
+    const m = String(hm).match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     if(!m) return null;
     return (+m[1]*60 + +m[2]) / (24*60);
   };
