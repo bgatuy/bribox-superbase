@@ -437,19 +437,19 @@
       rows.push({
         tanggal: idx === 0 ? tanggalLabel(year, month, d) : "", // tanggal cuma di baris pertama
         teknisi: r.teknisi || "",
-        lokasiDari: r.lokasiDari || "",
-        lokasiKe: r.lokasiKe || "",
+        lokasiDari: r.lokasi_dari || "",
+        lokasiKe: r.lokasi_ke || "",
         jenis: r.jenis || "",
         detail: r.detail || "",
         status: r.status || "",
-        jamMasuk: r.jamMasuk || "",
-        jamBerangkat: r.jamBerangkat || "",
-        jamTiba: r.jamTiba || "",
-        jamMulai: r.jamMulai || "",
-        jamSelesai: r.jamSelesai || "",
-        waktuPenyelesaian: hmToExcelTime(r.durasiPenyelesaianStr || r.waktuPenyelesaian || ""),
-        jarak: (r.jarakKm === "" || r.jarakKm == null) ? null : Number(r.jarakKm || 0),
-        waktuTempuh: hmToExcelTime(r.waktuTempuhStr || r.waktuTempuh || ""),
+        jamMasuk: r.jam_masuk || "",
+        jamBerangkat: r.jam_berangkat || "",
+        jamTiba: r.jam_tiba || "",
+        jamMulai: r.jam_mulai || "",
+        jamSelesai: r.jam_selesai || "",
+        waktuPenyelesaian: minutesToExcelTime(r.durasi_penyelesaian_min),
+        jarak: (r.jarak_km === "" || r.jarak_km == null) ? null : Number(r.jarak_km || 0),
+        waktuTempuh: minutesToExcelTime(r.waktu_tempuh_min),
         keterangan: r.keterangan || ""
       });
     });
