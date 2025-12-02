@@ -116,7 +116,7 @@ async function getPdfHistoriFromSupabase() {
     const { data, error } = await supabaseClient
       .from('pdf_history')
       .select('content_hash, nama_uker, tanggal_pekerjaan, file_name, storage_path, size_bytes, meta, created_at')
-      .order('created_at', { ascending: false });
+      .order('tanggal_pekerjaan', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
     if (error) throw error;
     return data || [];
   } catch (error) {
@@ -133,15 +133,7 @@ async function renderTabel(){
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Belum ada data histori. Unggah PDF di Trackmate atau AppSheet.</td></tr>`;
     return;
   }
-  data = data
-    .map((it, i) => ({ ...it, _idx: i }))
-    .sort((a, b) => {
-      const ka = toNumDateDMY(a.tanggal_pekerjaan) || Date.parse(a.created_at || 0) || 0;
-      const kb = toNumDateDMY(b.tanggal_pekerjaan) || Date.parse(b.created_at || 0) || 0;
-      if (ka !== kb) return ka - kb;
-      return a._idx - b._idx;
-    })
-    .map((it,i)=>({ ...it, _no: i+1, nama_uker: stripLeadingColon(it.nama_uker) }));
+  data = data.map((it,i)=>({ ...it, _no: i+1, nama_uker: stripLeadingColon(it.nama_uker) }));
 
   const headerHasPick = !!pickAllCheckbox;
 
