@@ -227,8 +227,15 @@ pdfInput?.addEventListener("change", async () => {
 });
 
 /* ========= Copy & Save ========= */
+let isUploading = false; // Tambahkan flag untuk mencegah klik ganda, sama seperti di trackmate
+
 copyBtn?.addEventListener('click', async () => {
   try {
+    if (isUploading) return;
+    isUploading = true;
+    if (copyBtn) copyBtn.disabled = true;
+    showSpinner?.();
+
     // 1. Copy teks ke clipboard
     const text = output?.textContent || '';
     await navigator.clipboard.writeText(text);
@@ -240,7 +247,8 @@ copyBtn?.addEventListener('click', async () => {
     // 2. Validasi file
     if (!currentFile || !currentTanggalRaw) {
       showToast("Tidak ada file/tanggal untuk disimpan.", 3000, 'warn');
-      return;
+      hideSpinner?.(); // Sembunyikan spinner jika validasi gagal di awal
+      return; // Keluar dari fungsi
     }
 
     // 3. Persiapan data untuk Supabase
@@ -299,5 +307,8 @@ copyBtn?.addEventListener('click', async () => {
       showToast(`Gagal menyimpan: ${msg}`, 4500, 'warn');
     }
   } finally {
+    isUploading = false;
+    if (copyBtn) copyBtn.disabled = false;
+    hideSpinner?.();
   }
 });
