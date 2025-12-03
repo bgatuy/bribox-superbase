@@ -283,7 +283,17 @@ copyBtn?.addEventListener('click', async () => {
       size_bytes: currentFile.size,
       meta: null, // PDF dari AppSheet sudah ada nama, tidak perlu meta
     };
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, { onConflict: 'content_hash' });
+
+    // FIX: Lakukan Cek-dan-Update/Insert manual untuk menghindari error 'no unique constraint'
+    const { data: existing, error: checkError } = await supabaseClient
+      .from('pdf_history')
+      .select('content_hash')
+      .eq('user_id', user.id)
+      .eq('content_hash', contentHash)
+      .maybeSingle();
+
+    const dbQuery = existing ? supabaseClient.from('pdf_history').update(payload).eq('user_id', user.id).eq('content_hash', contentHash) : supabaseClient.from('pdf_history').insert(payload);
+    const { error: dbError } = await dbQuery;
     if (dbError) throw dbError;
 
     showToast("Berhasil disimpan ke server.", 3000, "success");
