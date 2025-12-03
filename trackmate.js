@@ -416,6 +416,7 @@ copyBtn?.addEventListener("click", async () => {
     if (isUploading) return; // cegah trigger ganda
     isUploading = true;
     if (copyBtn) copyBtn.disabled = true;
+    showSpinner?.(); // <-- TAMPILKAN SPINNER DI AWAL
     // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
@@ -426,7 +427,14 @@ copyBtn?.addEventListener("click", async () => {
 
     // 2) Validasi file
     const file = fileInput?.files?.[0];
-    if (!file) { showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn"); return; }
+    if (!file) {
+      showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn");
+      // Jangan lupa sembunyikan spinner dan reset state jika ada error di awal
+      isUploading = false;
+      if (copyBtn) copyBtn.disabled = false;
+      hideSpinner?.();
+      return;
+    }
 
     // 3) Persiapan data untuk Supabase
     const contentHash = await sha256File(file);
@@ -480,5 +488,6 @@ copyBtn?.addEventListener("click", async () => {
   } finally {
     isUploading = false;
     if (copyBtn) copyBtn.disabled = false;
+    hideSpinner?.(); // <-- SEMBUNYIKAN SPINNER DI AKHIR (baik sukses maupun gagal)
   }
 });

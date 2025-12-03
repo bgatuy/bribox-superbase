@@ -112,10 +112,14 @@ function collectRowsForPdf(){
 async function getPdfHistoriFromSupabase() {
   if (typeof supabaseClient === 'undefined') return [];
   try {
-    // RLS akan otomatis filter by user_id, tapi kita bisa ambil kolom penting saja
+    // Dapatkan user saat ini untuk memastikan kita HANYA mengambil datanya sendiri,
+    // bahkan jika user tersebut adalah admin. Ini mencegah admin melihat data user lain
+    // di halaman personal ini.
+    const user = await getUserOrThrow();
     const { data, error } = await supabaseClient
       .from('pdf_history')
       .select('content_hash, nama_uker, tanggal_pekerjaan, file_name, storage_path, size_bytes, meta, created_at')
+      .eq('user_id', user.id) // <-- FIX: Pindahkan filter .eq() SETELAH .select()
       .order('tanggal_pekerjaan', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
     if (error) throw error;
     return data || [];
