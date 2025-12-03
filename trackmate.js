@@ -463,9 +463,11 @@ copyBtn?.addEventListener("click", async () => {
       size_bytes: file.size,
       meta: meta || null                 // bisa null, fallback di sisi generator
     };
-    const { error: dbError } = await supabaseClient
-      .from('pdf_history')
-      .upsert(payload, { onConflict: 'content_hash' });
+
+    // FIX: Gunakan upsert dengan composite key yang benar setelah skema DB diubah.
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, {
+      onConflict: 'user_id,content_hash'
+    });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);
 
     showToast?.("Berhasil disimpan ke server.", 3000, "success");
