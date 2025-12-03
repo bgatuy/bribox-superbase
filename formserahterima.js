@@ -119,8 +119,8 @@ async function getPdfHistoriFromSupabase() {
     const { data, error } = await supabaseClient
       .from('pdf_history')
       .select('content_hash, nama_uker, tanggal_pekerjaan, file_name, storage_path, size_bytes, meta, created_at')
-      .eq('user_id', user.id) // <-- FIX: Pindahkan filter .eq() SETELAH .select()
-      .order('tanggal_pekerjaan', { ascending: true, nullsFirst: false }).order('created_at', { ascending: true });
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }); // Ambil data terbaru dulu untuk efisiensi awal
     if (error) throw error;
     return data || [];
   } catch (error) {
@@ -137,6 +137,18 @@ async function renderTabel(){
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Belum ada data histori. Unggah PDF di Trackmate atau AppSheet.</td></tr>`;
     return;
   }
+
+  // Helper untuk konversi DD/MM/YYYY ke YYYYMMDD agar bisa diurutkan
+  const toSortableDate = (dmy) => {
+    if (!dmy || typeof dmy !== 'string') return '99999999'; // Taruh yang tidak valid di akhir
+    const parts = dmy.split('/');
+    if (parts.length !== 3) return '99999999';
+    return `${parts[2]}${parts[1]}${parts[0]}`; // YYYYMMDD
+  };
+
+  // Lakukan pengurutan di sini (client-side)
+  data.sort((a, b) => toSortableDate(a.tanggal_pekerjaan).localeCompare(toSortableDate(b.tanggal_pekerjaan)));
+
   data = data.map((it,i)=>({ ...it, _no: i+1, nama_uker: stripLeadingColon(it.nama_uker) }));
 
   const headerHasPick = !!pickAllCheckbox;
