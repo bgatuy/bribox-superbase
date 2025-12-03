@@ -416,7 +416,6 @@ copyBtn?.addEventListener("click", async () => {
     if (isUploading) return; // cegah trigger ganda
     isUploading = true;
     if (copyBtn) copyBtn.disabled = true;
-    showSpinner?.(); // <-- TAMPILKAN SPINNER DI AWAL
     // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
@@ -427,14 +426,7 @@ copyBtn?.addEventListener("click", async () => {
 
     // 2) Validasi file
     const file = fileInput?.files?.[0];
-    if (!file) {
-      showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn");
-      // Jangan lupa sembunyikan spinner dan reset state jika ada error di awal
-      isUploading = false;
-      if (copyBtn) copyBtn.disabled = false;
-      hideSpinner?.();
-      return;
-    }
+    if (!file) { showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn"); return; }
 
     // 3) Persiapan data untuk Supabase
     const contentHash = await sha256File(file);
@@ -471,17 +463,9 @@ copyBtn?.addEventListener("click", async () => {
       size_bytes: file.size,
       meta: meta || null                 // bisa null, fallback di sisi generator
     };
-
-    // FIX: Lakukan Cek-dan-Update/Insert manual untuk menghindari error 'no unique constraint'
-    const { data: existing, error: checkError } = await supabaseClient
+    const { error: dbError } = await supabaseClient
       .from('pdf_history')
-      .select('content_hash')
-      .eq('user_id', user.id)
-      .eq('content_hash', contentHash)
-      .maybeSingle();
-
-    const dbQuery = existing ? supabaseClient.from('pdf_history').update(payload).eq('user_id', user.id).eq('content_hash', contentHash) : supabaseClient.from('pdf_history').insert(payload);
-    const { error: dbError } = await dbQuery;
+      .upsert(payload, { onConflict: 'content_hash' });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);
 
     showToast?.("Berhasil disimpan ke server.", 3000, "success");
@@ -496,6 +480,5 @@ copyBtn?.addEventListener("click", async () => {
   } finally {
     isUploading = false;
     if (copyBtn) copyBtn.disabled = false;
-    hideSpinner?.(); // <-- SEMBUNYIKAN SPINNER DI AKHIR (baik sukses maupun gagal)
   }
 });

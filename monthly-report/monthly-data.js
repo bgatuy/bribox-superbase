@@ -21,17 +21,7 @@
 
   async function loadReportsFromSupabase(month) {
     if (typeof supabaseClient === 'undefined') return [];
-
-    // Dapatkan user saat ini untuk memastikan kita HANYA mengambil datanya sendiri,
-    // bahkan jika user tersebut adalah admin.
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    if (sessionError || !session?.user) {
-      showToast('Sesi pengguna tidak valid. Silakan login ulang.', 4000, 'warn');
-      return [];
-    }
-    const user = session.user;
-
-    const { data, error } = await supabaseClient.from('monthly_reports').select('*').eq('month', month).eq('user_id', user.id);
+    const { data, error } = await supabaseClient.from('monthly_reports').select('*').eq('month', month);
     if (error) {
       showToast(`Gagal memuat data: ${error.message}`, 4000, 'warn');
       return [];

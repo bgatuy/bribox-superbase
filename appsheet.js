@@ -273,8 +273,7 @@ copyBtn?.addEventListener('click', async () => {
     // 5. Simpan semua info ke database (tanpa metadata TTD)
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
     const payload = {
-      // FIX: Pastikan user_id selalu disertakan agar lolos RLS policy.
-      user_id: user.id,
+      user_id: user.id, // <-- TAMBAHKAN INI
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: currentTanggalRaw,
@@ -283,17 +282,7 @@ copyBtn?.addEventListener('click', async () => {
       size_bytes: currentFile.size,
       meta: null, // PDF dari AppSheet sudah ada nama, tidak perlu meta
     };
-
-    // FIX: Lakukan Cek-dan-Update/Insert manual untuk menghindari error 'no unique constraint'
-    const { data: existing, error: checkError } = await supabaseClient
-      .from('pdf_history')
-      .select('content_hash')
-      .eq('user_id', user.id)
-      .eq('content_hash', contentHash)
-      .maybeSingle();
-
-    const dbQuery = existing ? supabaseClient.from('pdf_history').update(payload).eq('user_id', user.id).eq('content_hash', contentHash) : supabaseClient.from('pdf_history').insert(payload);
-    const { error: dbError } = await dbQuery;
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, { onConflict: 'content_hash' });
     if (dbError) throw dbError;
 
     showToast("Berhasil disimpan ke server.", 3000, "success");
