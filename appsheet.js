@@ -273,7 +273,8 @@ copyBtn?.addEventListener('click', async () => {
     // 5. Simpan semua info ke database (tanpa metadata TTD)
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
     const payload = {
-      user_id: user.id, // <-- TAMBAHKAN INI
+      // FIX: Pastikan user_id selalu disertakan agar lolos RLS policy.
+      user_id: user.id,
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: currentTanggalRaw,
