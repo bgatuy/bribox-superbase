@@ -48,10 +48,10 @@ if (!path.endsWith('/') && !path.endsWith('/index.html')) {
         }
       }
 
-      // Auto logout saat idle lama (2 jam)
+      // Auto logout saat idle lama (8 jam)
       if (!window.__idleTimeoutSetup) {
         window.__idleTimeoutSetup = true;
-        const IDLE_LIMIT_MS = 2 * 60 * 60 * 1000;
+        const IDLE_LIMIT_MS = 8 * 60 * 60 * 1000; // 8 jam
         let idleTimer;
         const activityEvents = ['mousemove', 'keydown', 'scroll', 'touchstart', 'visibilitychange'];
         const resetIdleTimer = () => {
