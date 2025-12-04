@@ -1,13 +1,12 @@
 // ====== Trackmate (Supabase-Ready, Meta Reuse, Stable TTD) ======
 
-async function sha256File(file) {
+async function sha256Buffer(buffer) {
   try {
-    const buf = await file.arrayBuffer();
-    const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+    const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
     return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
   } catch {
     // fallback kalau SubtleCrypto gak ada
-    return `fz_${file.size}_${file.lastModified}_${Math.random().toString(36).slice(2,10)}`;
+    return `fz_${buffer.byteLength}_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
   }
 }
 
@@ -435,25 +434,27 @@ copyBtn?.addEventListener("click", async () => {
     }
     const fileBuffer = await file.arrayBuffer();
 
-    // Langkah 3: Persiapan data dan jalankan tugas berat secara PARALEL
+    // Langkah 3: Jalankan tugas-tugas berat secara PARALEL
     const user = await getUserOrThrow();
     
-    // Definisikan tugas-tugas yang akan berjalan bersamaan
-    const contentHashPromise = sha256File(file); // sha256File sudah efisien
+    // Tugas untuk menghitung hash dari buffer yang sudah dibaca
+    const contentHashPromise = sha256Buffer(fileBuffer);
 
-    const metaPromise = contentHashPromise.then(async (hash) => {
-      let meta = await getMetaByHash(hash);
-      if (!meta) {
+    // Tugas untuk mendapatkan/membuat metadata
+    const metaPromise = (async () => {
+      const hash = await contentHashPromise;
+      const existingMeta = await getMetaByHash(hash);
+      if (existingMeta) return existingMeta;
         // Kalibrasi hanya jika meta belum ada, gunakan buffer yang sudah dibaca
-        meta = await autoCalibratePdf(fileBuffer).catch(err => {
-          console.warn("Gagal auto-calibrate PDF:", err);
-          return null;
-        });
-      }
-      return meta;
-    });
+      return autoCalibratePdf(fileBuffer).catch(err => {
+        console.warn("Gagal auto-calibrate PDF:", err);
+        return null; // Jangan sampai error kalibrasi menggagalkan semua
+      });
+    })();
 
-    const uploadPromise = contentHashPromise.then(async (hash) => {
+    // Tugas untuk mengupload file (langsung pakai objek `file` agar lebih efisien)
+    const uploadPromise = (async () => {
+      const hash = await contentHashPromise;
       const filePath = `${user.id}/${hash}.pdf`;
       const { error } = await uploadWithRetry(filePath, file, { 
         upsert: true, 
@@ -461,14 +462,14 @@ copyBtn?.addEventListener("click", async () => {
       });
       if (error) throw new Error(`Upload gagal: ${error.message}`);
       return filePath; // Kembalikan path untuk disimpan ke DB
-    });
+    })();
 
     // Tunggu semua tugas paralel selesai
     const [contentHash, meta, storagePath] = await Promise.all([contentHashPromise, metaPromise, uploadPromise]);
 
     // Langkah 4: Setelah semua siap, simpan ke database
     const namaUkerBersih = stripLeadingColon(unitKerja) || "-";
-    const payload = {
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
       user_id: user.id,
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
@@ -477,9 +478,7 @@ copyBtn?.addEventListener("click", async () => {
       storage_path: storagePath,
       size_bytes: file.size,
       meta: meta || null
-    };
-
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, {
+    }, {
       onConflict: 'user_id,content_hash'
     });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);

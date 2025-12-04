@@ -1,13 +1,12 @@
 // ===== AppSheet =====
 
-async function sha256File(file) {
+async function sha256Buffer(buffer) {
   try {
-    const buf = await file.arrayBuffer();
-    const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+    const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
     return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
   } catch {
     // fallback kalau SubtleCrypto gak ada
-    return `fz_${file.size}_${file.lastModified}_${Math.random().toString(36).slice(2,10)}`;
+    return `fz_${buffer.byteLength}_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
   }
 }
 
@@ -252,36 +251,36 @@ copyBtn?.addEventListener('click', async () => {
     }
 
     // 3. Persiapan data untuk Supabase
-    const contentHash = await sha256File(currentFile);
+    const fileBuffer = await currentFile.arrayBuffer(); // Baca file sekali
+    const contentHash = await sha256Buffer(fileBuffer); // Gunakan buffer untuk hash
+
     // Gunakan getSession() yang lebih andal untuk mendapatkan user ID
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError || !session?.user) throw new Error('User tidak login.');
     const user = session.user;
     const filePath = `${user.id}/${contentHash}.pdf`;
 
-    // 4. Upload file ke Supabase Storage (dengan retry & fallback ArrayBuffer)
-    async function uploadWithRetryAB(path, file, options = {}) {
+    // 4. Upload file ke Supabase Storage (dengan retry, utamakan objek File)
+    async function uploadWithRetry(path, file, buffer, options = {}) {
       const bucket = supabaseClient.storage.from('pdf-forms');
-      const tryBlob = () => bucket.upload(path, file, options);
-      const tryArrayBuffer = async () => bucket.upload(path, await file.arrayBuffer(), options);
-      let res = await tryBlob();
+      let res = await bucket.upload(path, file, options); // Coba dengan objek File
       if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
         await new Promise(r => setTimeout(r, 500));
-        res = await tryBlob();
+        res = await bucket.upload(path, file, options); // Coba lagi dengan File
       }
       if (res?.error && /failed to fetch|network/i.test(res.error.message || '')) {
         await new Promise(r => setTimeout(r, 400));
-        res = await tryArrayBuffer();
+        res = await bucket.upload(path, buffer, options); // Fallback ke ArrayBuffer
       }
       return res;
     }
-    const { error: uploadError } = await uploadWithRetryAB(filePath, currentFile, { upsert: true, contentType: currentFile.type || 'application/pdf' });
+    const { error: uploadError } = await uploadWithRetry(filePath, currentFile, fileBuffer, { upsert: true, contentType: currentFile.type || 'application/pdf' });
     if (uploadError) throw new Error(`Upload gagal: ${uploadError.message}`);
 
     // 5. Simpan semua info ke database (tanpa metadata TTD)
     const namaUkerBersih = stripLeadingColon(unitKerja) || '-';
-    const payload = {
-      user_id: user.id, // <-- TAMBAHKAN INI
+    const { error: dbError } = await supabaseClient.from('pdf_history').upsert({
+      user_id: user.id,
       content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: currentTanggalRaw,
@@ -289,10 +288,7 @@ copyBtn?.addEventListener('click', async () => {
       storage_path: filePath,
       size_bytes: currentFile.size,
       meta: null, // PDF dari AppSheet sudah ada nama, tidak perlu meta
-    };
-
-    // FIX: Gunakan upsert dengan composite key yang benar setelah skema DB diubah.
-    const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, {
+    }, {
       onConflict: 'user_id,content_hash'
     });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);

@@ -21,7 +21,28 @@
 
   async function loadReportsFromSupabase(month) {
     if (typeof supabaseClient === 'undefined') return [];
-    const { data, error } = await supabaseClient.from('monthly_reports').select('*').eq('month', month);
+
+    // Dapatkan user ID untuk filter data, kecuali jika admin
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      showToast('Gagal memuat data: User tidak ditemukan.', 4000, 'warn');
+      return [];
+    }
+
+    // Cek apakah user adalah admin (berdasarkan class di body)
+    const isAdmin = document.body.classList.contains('is-admin');
+
+    let query = supabaseClient
+      .from('monthly_reports')
+      .select('*')
+      .eq('month', month);
+
+    // HANYA filter berdasarkan user_id jika BUKAN admin
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query;
     if (error) {
       showToast(`Gagal memuat data: ${error.message}`, 4000, 'warn');
       return [];
