@@ -37,7 +37,7 @@ const LOCATIONS = [
   "BRI 1 Lt. Split","BRI 1 Lt. 2","BRI 1 Lt. 3","BRI 1 Lt. 4","BRI 1 Lt. 5","BRI 1 Lt. 6","BRI 1 Lt. 7","BRI 1 Lt. 8","BRI 1 Lt. 9","BRI 1 Lt. 10","BRI 1 Lt. 11","BRI 1 Lt. 12","BRI 1 Lt. 13","BRI 1 Lt. 14","BRI 1 Lt. 15","BRI 1 Lt. 16","BRI 1 Lt. 17","BRI 1 Lt. 18","BRI 1 Lt. 19","BRI 1 Lt. 20",
   "BRI 2 Lt. Basement","BRI 2 Lt. 2","BRI 2 Lt. 3","BRI 2 Lt. 4","BRI 2 Lt. 5","BRI 2 Lt. 6","BRI 2 Lt. 7","BRI 2 Lt. 8","BRI 2 Lt. 9","BRI 2 Lt. 10","BRI 2 Lt. 11","BRI 2 Lt. 12","BRI 2 Lt. 13","BRI 2 Lt. 14","BRI 2 Lt. 15","BRI 2 Lt. 16","BRI 2 Lt. 17","BRI 2 Lt. 18","BRI 2 Lt. 19","BRI 2 Lt. 20","BRI 2 Lt. 21","BRI 2 Lt. 22","BRI 2 Lt. 23","BRI 2 Lt. 24","BRI 2 Lt. 25","BRI 2 Lt. 26","BRI 2 Lt. 27","BRI 2 Lt. 28","BRI 2 Lt. 29","BRI 2 Lt. 30","BRI 2 Lt. 31",
   "Gd. Parkir BRI Lt. 1","Gd. Parkir BRI Lt. 5","Gd. Parkir BRI Lt. 8",
-  "Menara Brilian Lt. 5","Menara Brilian Lt. 8","Menara Brilian Lt. 9","Menara Brilian Lt. 26","Menara Brilian Lt. 27","Menara Brilian Lt. 28","Menara Brilian Lt. 29","Menara Brilian Lt. 30","Menara Brilian Lt. 31","Menara Brilian Lt. 32","Menara Brilian Lt. 33","Menara Brilian Lt. 37","Menara Brilian Lt. 40",
+  "Menara Brilian Lt. 5","Menara Brilian Lt. 8","Menara Brilian Lt. 9","Menara Brilian Lt. 18","Menara Brilian Lt. 26","Menara Brilian Lt. 27","Menara Brilian Lt. 28","Menara Brilian Lt. 29","Menara Brilian Lt. 30","Menara Brilian Lt. 31","Menara Brilian Lt. 32","Menara Brilian Lt. 33","Menara Brilian Lt. 37","Menara Brilian Lt. 40","Menara Brilian Lt. 41",
   "PSCF Ragunan Lt. 1","PSCF Ragunan Lt. 2","PSCF Ragunan Lt. 3",
   "GTI Ragunan Lt. 5","GTI Ragunan Lt. 6","GTI Ragunan Lt. 7","GTI Ragunan Lt. 8"
 ];
