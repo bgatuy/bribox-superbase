@@ -234,7 +234,7 @@ copyBtn?.addEventListener('click', async () => {
     if (isUploading) return;
     isUploading = true;
     if (copyBtn) copyBtn.disabled = true;
-    showSpinner?.();
+    showSpinner();
 
     // 1. Copy teks ke clipboard
     const text = output?.textContent || '';
@@ -247,7 +247,7 @@ copyBtn?.addEventListener('click', async () => {
     // 2. Validasi file
     if (!currentFile || !currentTanggalRaw) {
       showToast("Tidak ada file/tanggal untuk disimpan.", 3000, 'warn');
-      hideSpinner?.(); // Sembunyikan spinner jika validasi gagal di awal
+      hideSpinner(); // Sembunyikan spinner jika validasi gagal di awal
       return; // Keluar dari fungsi
     }
 
@@ -309,6 +309,6 @@ copyBtn?.addEventListener('click', async () => {
   } finally {
     isUploading = false;
     if (copyBtn) copyBtn.disabled = false;
-    hideSpinner?.();
+    hideSpinner();
   }
 });

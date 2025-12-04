@@ -416,7 +416,7 @@ copyBtn?.addEventListener("click", async () => {
     if (isUploading) return; // cegah trigger ganda
     isUploading = true;
     if (copyBtn) copyBtn.disabled = true;
-    showSpinner?.(); // <-- TAMPILKAN SPINNER DI AWAL
+    showSpinner(); // <-- TAMPILKAN SPINNER DI AWAL
     // 1) Copy teks ke clipboard
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
@@ -428,9 +428,9 @@ copyBtn?.addEventListener("click", async () => {
     // 2) Validasi file
     const file = fileInput?.files?.[0];
     if (!file) {
-      showToast?.("Tidak ada file PDF yang dipilih.", 3500, "warn");
+      showToast("Tidak ada file PDF yang dipilih.", 3500, "warn");
       // Jangan lupa sembunyikan spinner jika ada error di awal
-      hideSpinner?.();
+      hideSpinner();
       return;
     }
 
@@ -476,18 +476,18 @@ copyBtn?.addEventListener("click", async () => {
     });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);
 
-    showToast?.("Berhasil disimpan ke server.", 3000, "success");
+    showToast("Berhasil disimpan ke server.", 3000, "success");
   } catch (err) {
     console.error("Copy handler error:", err);
     const msg = String(err?.message || err || '').trim();
     if (/failed to fetch/i.test(msg)) {
-      showToast?.("Upload gagal: koneksi ke Supabase Storage terputus/terblokir. Coba matikan VPN/Private DNS/Ad-block, gunakan Wi‑Fi yang sama dengan laptop, atau coba ulang.", 6000, 'warn');
+      showToast("Upload gagal: koneksi ke Supabase Storage terputus/terblokir. Coba matikan VPN/Private DNS/Ad-block, gunakan Wi‑Fi yang sama dengan laptop, atau coba ulang.", 6000, 'warn');
     } else {
-      showToast?.(`Error: ${msg}`, 5000, "warn");
+      showToast(`Error: ${msg}`, 5000, "warn");
     }
   } finally {
     isUploading = false;
     if (copyBtn) copyBtn.disabled = false;
-    hideSpinner?.(); // <-- SEMBUNYIKAN SPINNER DI AKHIR (baik sukses maupun gagal)
+    hideSpinner(); // <-- SEMBUNYIKAN SPINNER DI AKHIR (baik sukses maupun gagal)
   }
 });
