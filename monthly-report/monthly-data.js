@@ -15,8 +15,9 @@
       return [];
     }
 
-    // Cek apakah user adalah admin (berdasarkan class di body)
-    const isAdmin = document.body.classList.contains('is-admin');
+    // Cek apakah user adalah admin (berdasarkan class di <html> yang di-set oleh utils.js)
+    // Ini lebih andal daripada body.classList karena di-set lebih awal.
+    const isAdmin = document.documentElement.classList.contains('is-admin');
 
     let query = supabaseClient
       .from('monthly_reports')
