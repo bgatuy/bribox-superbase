@@ -413,64 +413,72 @@ Status : ${status}`;
 /* ========= Copy & Save Histori (single final toast) ========= */
 copyBtn?.addEventListener("click", async () => {
   try {
-    if (isUploading) return; // cegah trigger ganda
+    if (isUploading) return;
     isUploading = true;
     if (copyBtn) copyBtn.disabled = true;
-    showSpinner(); // <-- TAMPILKAN SPINNER DI AWAL
-    // 1) Copy teks ke clipboard
+    showSpinner();
+
+    // Langkah 1: Copy teks ke clipboard (feedback instan untuk user)
     const text = output?.textContent || "";
     await navigator.clipboard.writeText(text);
     if (copyBtn) {
       copyBtn.textContent = "Copied!";
       setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
     }
-
-    // 2) Validasi file
+    
+    // Langkah 2: Validasi file dan baca ke buffer SEKALI saja
     const file = fileInput?.files?.[0];
     if (!file) {
       showToast("Tidak ada file PDF yang dipilih.", 3500, "warn");
-      // Jangan lupa sembunyikan spinner jika ada error di awal
       hideSpinner();
       return;
     }
+    const fileBuffer = await file.arrayBuffer();
 
-    // 3) Persiapan data untuk Supabase
-    const contentHash = await sha256File(file);
+    // Langkah 3: Persiapan data dan jalankan tugas berat secara PARALEL
     const user = await getUserOrThrow();
-    const filePath = `${user.id}/${contentHash}.pdf`;
+    
+    // Definisikan tugas-tugas yang akan berjalan bersamaan
+    const contentHashPromise = sha256File(file); // sha256File sudah efisien
 
-    // 4) Upload file ke Supabase Storage (idempotent by path)
-    const { error: uploadError } = await uploadWithRetry(
-      filePath,
-      file,
-      { upsert: true, contentType: file.type || 'application/pdf' }
-    );
-    if (uploadError) throw new Error(`Upload gagal: ${uploadError.message}`);
+    const metaPromise = contentHashPromise.then(async (hash) => {
+      let meta = await getMetaByHash(hash);
+      if (!meta) {
+        // Kalibrasi hanya jika meta belum ada, gunakan buffer yang sudah dibaca
+        meta = await autoCalibratePdf(fileBuffer).catch(err => {
+          console.warn("Gagal auto-calibrate PDF:", err);
+          return null;
+        });
+      }
+      return meta;
+    });
 
-    // 5) META: coba reuse dulu kalau hash ini sudah pernah ada
-    let meta = await getMetaByHash(contentHash);
-    if (!meta) {
-      // Kalau belum ada → kalibrasi baru (pakai rumus patched)
-      meta = await autoCalibratePdf(await file.arrayBuffer()).catch(err => {
-        console.warn("Gagal auto-calibrate PDF:", err);
-        return null;
+    const uploadPromise = contentHashPromise.then(async (hash) => {
+      const filePath = `${user.id}/${hash}.pdf`;
+      const { error } = await uploadWithRetry(filePath, file, { 
+        upsert: true, 
+        contentType: file.type || 'application/pdf' 
       });
-    }
+      if (error) throw new Error(`Upload gagal: ${error.message}`);
+      return filePath; // Kembalikan path untuk disimpan ke DB
+    });
 
-    // 6) Simpan semua info ke database Supabase (COMPOSITE KEY!)
+    // Tunggu semua tugas paralel selesai
+    const [contentHash, meta, storagePath] = await Promise.all([contentHashPromise, metaPromise, uploadPromise]);
+
+    // Langkah 4: Setelah semua siap, simpan ke database
     const namaUkerBersih = stripLeadingColon(unitKerja) || "-";
     const payload = {
-      user_id: user.id,                  // <— WAJIB, composite
-      content_hash: contentHash,         // <— WAJIB, composite
+      user_id: user.id,
+      content_hash: contentHash,
       nama_uker: namaUkerBersih,
       tanggal_pekerjaan: tanggalRaw || null,
       file_name: file.name,
-      storage_path: filePath,
+      storage_path: storagePath,
       size_bytes: file.size,
-      meta: meta || null                 // bisa null, fallback di sisi generator
+      meta: meta || null
     };
 
-    // FIX: Gunakan upsert dengan composite key yang benar setelah skema DB diubah.
     const { error: dbError } = await supabaseClient.from('pdf_history').upsert(payload, {
       onConflict: 'user_id,content_hash'
     });
@@ -488,6 +496,6 @@ copyBtn?.addEventListener("click", async () => {
   } finally {
     isUploading = false;
     if (copyBtn) copyBtn.disabled = false;
-    hideSpinner(); // <-- SEMBUNYIKAN SPINNER DI AKHIR (baik sukses maupun gagal)
+    hideSpinner();
   }
 });
