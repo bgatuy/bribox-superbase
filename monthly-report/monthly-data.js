@@ -720,4 +720,25 @@
 
   // Jalankan filter saat halaman dimuat
   document.addEventListener('DOMContentLoaded', applyFilters);
+
+  // ===== FIX STICKY HEADER GAP =====
+  // CSS mengandalkan variabel --th-h1 untuk posisi sticky header baris ke-2.
+  // Ini harus dihitung berdasarkan tinggi baris pertama yang sebenarnya.
+  function adjustHeaderHeight() {
+    const headerRow = document.querySelector('.table thead tr.h1');
+    if (headerRow) {
+      // offsetHeight mencakup padding dan border, yang kita butuhkan.
+      // Ini memastikan baris ke-2 diposisikan tepat di bawah baris ke-1.
+      const height = headerRow.offsetHeight;
+      document.body.style.setProperty('--th-h1', `${height}px`);
+    }
+  }
+
+  // Sesuaikan saat ukuran jendela berubah atau saat DOM siap
+  window.addEventListener('resize', adjustHeaderHeight);
+  document.addEventListener('DOMContentLoaded', () => {
+    adjustHeaderHeight();
+    // Timeout kecil untuk mengatasi font atau style yang lambat dimuat
+    setTimeout(adjustHeaderHeight, 200);
+  });
 })();
