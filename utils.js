@@ -1,6 +1,16 @@
 // ===== UTILS.JS (File Baru) =====
 // Berisi fungsi-fungsi yang dipakai di banyak halaman.
 
+// ===== UTILS.JS (File Baru) =====
+// Berisi fungsi-fungsi yang dipakai di banyak halaman.
+
+// Inisialisasi dasar secepat mungkin
+(function(){
+  const root = document.documentElement;
+  try { if (localStorage.getItem('is_admin_flag') === '1') root.classList.add('is-admin'); } catch {}
+  if (!root.classList.contains('has-smooth')) root.classList.add('has-smooth');
+})();
+
 /**
  * Inisialisasi dan menyediakan fungsi untuk menampilkan/menyembunyikan spinner loading global.
  */
@@ -104,10 +114,14 @@
 
 // Hitung root app agar redirect/link bekerja dari subfolder (mis. monthly-report/*)
 function getAppRoot() {
-  const p = window.location.pathname || '/';
-  const idx = p.indexOf('/monthly-report/');
-  if (idx >= 0) return p.slice(0, idx + 1); // contoh: /app/
-  return p.replace(/[^\/]*$/, '');          // contoh: /app/
+  const path = window.location.pathname;
+  // Jika path mengandung '/monthly-report/', kita tahu kita berada di subfolder.
+  // Kita perlu kembali satu level ke root aplikasi.
+  if (path.includes('/monthly-report/')) {
+    return path.substring(0, path.indexOf('/monthly-report/')) + '/';
+  }
+  // Jika tidak, kita sudah berada di root aplikasi.
+  return path.substring(0, path.lastIndexOf('/') + 1);
 }
 
 /**
@@ -154,6 +168,118 @@ function showToast(message, duration = 3000, variant = "success") {
   };
 }
 
+/**
+ * Membuat dan menyisipkan komponen layout global (Sidebar, Header, Bottom Nav)
+ * ke dalam halaman. Mencegah duplikasi HTML.
+ */
+function injectGlobalLayout() {
+  const dashboard = document.querySelector('.dashboard');
+  if (!dashboard) return;
+
+  const root = getAppRoot();
+
+  const sidebarHTML = `
+    <aside class="sidebar">
+      <h2 class="logo">
+        <img src="${root}favicon.png" alt="Logo" class="logo-icon" />
+        BRIBOX KANPUS
+      </h2>
+      <nav>
+        <a href="${root}trackmate.html" data-nav="trackmate"><span class="material-icons" aria-hidden="true">settings</span> Trackmate</a>
+        <a href="${root}appsheet.html" data-nav="appsheet"><span class="material-icons" aria-hidden="true">apps</span> AppSheet</a>
+        <a href="${root}formserahterima.html" data-nav="serah"><span class="material-icons" aria-hidden="true">handshake</span> Form Serah Terima</a>
+        <button class="nav-group" type="button" aria-controls="nav-monthly" aria-expanded="false">
+          <span class="material-icons" aria-hidden="true">event_note</span> Monthly Report
+        </button>
+        <div id="nav-monthly" class="submenu" hidden>
+          <a href="${root}monthly-report/monthly-form.html" data-nav="monthly">Monthly Form</a>
+          <a href="${root}monthly-report/monthly-data.html" data-nav="monthly">Monthly Data</a>
+        </div>
+      </nav>
+      <div class="sidebar-credit" aria-label="Project credit">
+        Web App Created By BangAtuy - 2025
+      </div>
+    </aside>`;
+
+  const headerHTML = `
+    <header class="dashboard-header">
+      <button class="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">☰</button>
+      <h1 class="page-subtitle"></h1>
+      <button id="btnLogout" class="header-logout-btn" title="Logout">
+        <img class="logout-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Logout" loading="lazy">
+      </button>
+    </header>`;
+
+  const bottomNavHTML = `
+    <nav class="bottom-nav" role="navigation" aria-label="Main">
+      <a class="bn-item bn-trackmate" href="${root}trackmate.html" data-page="trackmate">
+        <span class="material-icons" aria-hidden="true">settings</span><span class="bn-txt">Trackmate</span>
+      </a>
+      <a class="bn-item bn-appsheet" href="${root}appsheet.html" data-page="appsheet">
+        <span class="material-icons" aria-hidden="true">apps</span><span class="bn-txt">AppSheet</span>
+      </a>
+      <a class="bn-item bn-serah" href="${root}formserahterima.html" data-page="serah">
+        <span class="material-icons" aria-hidden="true">handshake</span><span class="bn-txt">Serah Terima</span>
+      </a>
+      <button class="bn-item bn-monthly-trigger" type="button" aria-expanded="false" aria-controls="bn-submonthly">
+        <span class="material-icons" aria-hidden="true">event_note</span><span class="bn-txt">Monthly Report</span>
+      </button>
+      <a class="bn-item bn-admin" href="${root}admin.html" data-page="admin" hidden>
+        <span class="material-icons" aria-hidden="true">admin_panel_settings</span><span class="bn-txt">Admin</span>
+      </a>
+    </nav>
+    <div class="bn-submenu" id="bn-submonthly" hidden>
+      <a href="${root}monthly-report/monthly-form.html" class="bn-subitem">
+        <span class="material-icons" aria-hidden="true">note_add</span><span>Monthly Form</span>
+      </a>
+      <a href="${root}monthly-report/monthly-data.html" class="bn-subitem">
+        <span class="material-icons" aria-hidden="true">view_list</span><span>Monthly Data</span>
+      </a>
+    </div>`;
+
+  // Sisipkan HTML ke DOM
+  dashboard.insertAdjacentHTML('afterbegin', sidebarHTML);
+  const mainEl = dashboard.querySelector('.main');
+  if (mainEl) mainEl.insertAdjacentHTML('afterbegin', headerHTML);
+  document.body.insertAdjacentHTML('beforeend', bottomNavHTML);
+
+  // Ambil judul dari H1 di dalam main content dan pindahkan ke header
+  const pageTitleSource = mainEl?.querySelector('h1.page-title-source');
+  const headerTitleTarget = document.querySelector('.dashboard-header .page-subtitle');
+  if (pageTitleSource && headerTitleTarget) {
+    headerTitleTarget.textContent = pageTitleSource.textContent;
+    pageTitleSource.remove();
+  }
+
+  // Aktifkan menu berdasarkan URL halaman saat ini (lebih akurat)
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.sidebar a, .bottom-nav a, .bn-submenu a').forEach(el => {
+    const linkUrl = new URL(el.href);
+    if (linkUrl.pathname === currentPath) {
+      el.classList.add('active');
+
+      // Buka submenu jika item aktif ada di dalamnya
+      const submenu = el.closest('.submenu');
+      if (submenu) {
+        submenu.hidden = false;
+        const triggerId = submenu.id.startsWith('bn-') ? 'bn-submonthly' : 'nav-monthly';
+        const triggerEl = document.querySelector(`[aria-controls="${triggerId}"]`);
+        if (triggerEl) triggerEl.setAttribute('aria-expanded', 'true');
+      }
+    }
+  });
+
+  // Inisialisasi event listener untuk komponen yang baru dibuat
+  initSidebar();
+  initLogoutButton();
+  initMobileSubmenu();
+  const navGroup = document.querySelector('.nav-group');
+  navGroup?.addEventListener('click', () => {
+    const isExpanded = navGroup.getAttribute('aria-expanded') === 'true';
+    navGroup.setAttribute('aria-expanded', String(!isExpanded));
+    document.getElementById('nav-monthly').hidden = isExpanded;
+  });
+}
 
 /** Inisialisasi fungsionalitas sidebar */
 function initSidebar() {

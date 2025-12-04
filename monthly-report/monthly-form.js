@@ -1,17 +1,4 @@
 (function(){
-document.addEventListener('DOMContentLoaded', function () {
-  const title = document.querySelector('.dashboard-header h1')?.textContent?.toLowerCase() || "";
-  const body = document.body;
-  if (title.includes('trackmate'))      body.setAttribute('data-page', 'trackmate');
-  else if (title.includes('appsheet'))  body.setAttribute('data-page', 'appsheet');
-  else if (title.includes('serah'))     body.setAttribute('data-page', 'serah');
-  else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
-  if (typeof initSidebar === 'function') initSidebar();
-
-  if (typeof initAdminFeatures === 'function') initAdminFeatures();
-  if (typeof initLogoutButton === 'function') initLogoutButton(); // <-- FUNGSI LOGOUT DIPANGGIL
-});
-
   // ===== elem refs
   const el = (id) => document.getElementById(id);
   const bulan = el('bulan');
@@ -68,12 +55,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const editId = qs.get('edit');
 
   async function refreshCountForMonth(month){
-    if (!countBulan || (typeof supabaseClient === 'undefined')) return;
-    const { count, error } = await supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }).eq('month', month);
-    if (!error) {
-      countBulan.textContent = count || 0;
+    if (countBulan && typeof supabaseClient !== 'undefined') {
+      const { count, error } = await supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }).eq('month', month);
+      if (!error) {
+        countBulan.textContent = count || 0;
+      }
     }
   }
+
   function setLinkTargets(month){
     const href = `monthly-data.html?month=${encodeURIComponent(month)}`;
     if (linkData) linkData.href = href;
@@ -119,21 +108,6 @@ document.addEventListener('DOMContentLoaded', function () {
       durasiPenyelesaian.value = toHHMM(dur);
     } else { durasiPenyelesaian.value = '0:00'; }
   }
-
-  // ===== init (insert defaults; overridden in edit mode)
-  bulan.value = defaultMonth();
-  tanggal.value = defaultDate();
-  setLinkTargets(bulan.value);
-  refreshCountForMonth(bulan.value);
-  populateTeknisi();                // <-- balikin ini, sekarang fungsinya ada
-
-  // pastikan auto-hitungan jalan saat ketik ATAU blur
-  [jamBerangkat,jamTiba,jamMulai,jamSelesai].forEach(inp=>{
-    ['input','change'].forEach(ev => inp.addEventListener(ev, computeAutoFields));
-  });
-  computeAutoFields();
-
-  bulan.addEventListener('change', ()=>{ setLinkTargets(bulan.value); refreshCountForMonth(bulan.value); });
 
   // ===== Edit mode: load existing record
   async function loadForEdit(id){
@@ -208,8 +182,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  if (editId) { loadForEdit(editId); }
-
   // ===== helper
   function formatTanggalLong(dateStr){
     try { return new Date(dateStr+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long', day:'2-digit', month:'long', year:'numeric'}); }
@@ -217,63 +189,72 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ===== submit (insert or update)
-  form.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const month = bulan.value?.trim();
-    const dateStr = tanggal.value?.trim();
-    const tech = teknisi.value?.trim() || (await supabaseClient.auth.getUser()).data.user?.email;
-    if(!month || !dateStr || !tech){ showToast('Bulan, Tanggal, dan Teknisi wajib diisi.'); return; }
-
-    computeAutoFields(); // ensure latest
-
-    const berangkat = parseTimeToMin(jamBerangkat.value);
-    const tiba = parseTimeToMin(jamTiba.value);
-    const mulai = parseTimeToMin(jamMulai.value);
-    const selesai = parseTimeToMin(jamSelesai.value);
-    const durPenyMin = Math.max(0, (selesai - mulai + 1440) % 1440);
-    const tempuhMin = Math.max(0, (tiba - berangkat + 1440) % 1440);
-
-    const rec = {
-      month,
-      date: dateStr,
-      tanggal_label: formatTanggalLong(dateStr),
-      teknisi: tech,
-      lokasi_dari: (lokasiDari.value||'').trim(),
-      lokasi_ke: (lokasiKe.value||'').trim(),
-      jenis: jenis.value,
-      detail: (detail.value||'').trim(),
-      status: status.value,
-      jam_masuk: toHHMMnorm(jamMasuk.value) || null,
-      jam_berangkat: toHHMMnorm(jamBerangkat.value) || null,
-      jam_tiba: toHHMMnorm(jamTiba.value) || null,
-      jam_mulai: toHHMMnorm(jamMulai.value) || null,
-      jam_selesai: toHHMMnorm(jamSelesai.value) || null,
-      durasi_penyelesaian_min: durPenyMin,
-      jarak_km: parseFloat(jarak.value || '0') || 0,
-      waktu_tempuh_min: tempuhMin,
-      keterangan: (keterangan.value||'').trim(),
-    };
-
-    try {
-      if (editId) {
-        // Update existing
-        const { error } = await supabaseClient.from('monthly_reports').update(rec).eq('id', editId);
-        if (error) throw error;
-        showToast('Perubahan berhasil disimpan.');
-        // Kembali ke data bulan terkait
-        window.location.href = `monthly-data.html?month=${encodeURIComponent(month)}`;
-      } else {
-        // Insert new
-        const { error } = await supabaseClient.from('monthly_reports').insert([rec]);
-        if (error) throw error;
-        showToast('Data berhasil disimpan ke server.');
-        form.reset(); bulan.value = month; tanggal.value = defaultDate();
-        setLinkTargets(month); refreshCountForMonth(month); computeAutoFields();
-      }
-    } catch (error) {
-      console.error('Gagal menyimpan laporan:', error);
-      showToast(`Gagal menyimpan: ${error.message}`, 4000, 'warn');
+  function initializePage() {
+    // ===== init (insert defaults; overridden in edit mode)
+    if (!editId) {
+      bulan.value = defaultMonth();
+      tanggal.value = defaultDate();
     }
-  });
-})();
+    setLinkTargets(bulan.value);
+    refreshCountForMonth(bulan.value);
+    populateTeknisi();
 
+    // pastikan auto-hitungan jalan saat ketik ATAU blur
+    [jamBerangkat,jamTiba,jamMulai,jamSelesai].forEach(inp=>{
+      ['input','change'].forEach(ev => inp.addEventListener(ev, computeAutoFields));
+    });
+    computeAutoFields();
+
+    bulan.addEventListener('change', ()=>{ setLinkTargets(bulan.value); refreshCountForMonth(bulan.value); });
+
+    if (editId) { loadForEdit(editId); }
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const month = bulan.value?.trim();
+      const dateStr = tanggal.value?.trim();
+      const tech = teknisi.value?.trim() || (await supabaseClient.auth.getUser()).data.user?.email;
+      if(!month || !dateStr || !tech){ showToast('Bulan, Tanggal, dan Teknisi wajib diisi.'); return; }
+
+      computeAutoFields(); // ensure latest
+
+      const berangkat = parseTimeToMin(jamBerangkat.value);
+      const tiba = parseTimeToMin(jamTiba.value);
+      const mulai = parseTimeToMin(jamMulai.value);
+      const selesai = parseTimeToMin(jamSelesai.value);
+      const durPenyMin = Math.max(0, (selesai - mulai + 1440) % 1440);
+      const tempuhMin = Math.max(0, (tiba - berangkat + 1440) % 1440);
+
+      const rec = {
+        month, date: dateStr, tanggal_label: formatTanggalLong(dateStr), teknisi: tech,
+        lokasi_dari: (lokasiDari.value||'').trim(), lokasi_ke: (lokasiKe.value||'').trim(),
+        jenis: jenis.value, detail: (detail.value||'').trim(), status: status.value,
+        jam_masuk: toHHMMnorm(jamMasuk.value) || null, jam_berangkat: toHHMMnorm(jamBerangkat.value) || null,
+        jam_tiba: toHHMMnorm(jamTiba.value) || null, jam_mulai: toHHMMnorm(jamMulai.value) || null,
+        jam_selesai: toHHMMnorm(jamSelesai.value) || null,
+        durasi_penyelesaian_min: durPenyMin, jarak_km: parseFloat(jarak.value || '0') || 0,
+        waktu_tempuh_min: tempuhMin, keterangan: (keterangan.value||'').trim(),
+      };
+
+      try {
+        if (editId) {
+          const { error } = await supabaseClient.from('monthly_reports').update(rec).eq('id', editId);
+          if (error) throw error;
+          showToast('Perubahan berhasil disimpan.');
+          window.location.href = `monthly-data.html?month=${encodeURIComponent(month)}`;
+        } else {
+          const { error } = await supabaseClient.from('monthly_reports').insert([rec]);
+          if (error) throw error;
+          showToast('Data berhasil disimpan ke server.');
+          form.reset(); bulan.value = month; tanggal.value = defaultDate();
+          setLinkTargets(month); refreshCountForMonth(month); computeAutoFields();
+        }
+      } catch (error) {
+        console.error('Gagal menyimpan laporan:', error);
+        showToast(`Gagal menyimpan: ${error.message}`, 4000, 'warn');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializePage);
+})();

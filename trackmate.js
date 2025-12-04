@@ -10,16 +10,9 @@ async function sha256Buffer(buffer) {
   }
 }
 
+// Hapus DOMContentLoaded listener yang berulang.
+// Inisialisasi layout dan fitur global sekarang ditangani oleh utils.js.
 document.addEventListener('DOMContentLoaded', function () {
-  const title = document.querySelector('.dashboard-header h1')?.textContent?.toLowerCase() || "";
-  const body = document.body;
-  if (title.includes('trackmate'))      body.setAttribute('data-page', 'trackmate');
-  else if (title.includes('appsheet'))  body.setAttribute('data-page', 'appsheet');
-  else if (title.includes('serah'))     body.setAttribute('data-page', 'serah');
-  else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
-  if (typeof initSidebar === 'function') initSidebar();  
-  if (typeof initLogoutButton === 'function') initLogoutButton();
-  if (typeof initAdminFeatures === 'function') initAdminFeatures();
   // Setup field lokasi (input + datalist, lazy populate)
   setupLokasiWithSearch();
 });

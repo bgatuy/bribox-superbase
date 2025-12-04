@@ -1,82 +1,13 @@
 // admin.js
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Sembunyikan tampilan sampai verifikasi admin selesai untuk mencegah flicker nav bawah
-  try { document.body.style.visibility = 'hidden'; } catch {}
-  // Pastikan supabaseClient sudah ada
-  if (typeof supabaseClient === 'undefined') {
-    alert('Koneksi ke Supabase gagal. Halaman tidak dapat dimuat.');
-    window.location.href = 'trackmate.html'; // Konsisten pakai path relatif
-    return;
-  }
-
-  // 1. Verifikasi bahwa pengguna adalah admin
-  const { data: isAdmin, error } = await supabaseClient.rpc('is_admin');
-
-  if (error) {
-    alert(`Gagal memverifikasi akses admin: ${error.message}`);
-    window.location.href = 'trackmate.html';
-    return;
-  }
-
-  if (!isAdmin) {
-    // Jika bukan admin, tendang ke halaman utama
-    alert('Akses ditolak. Anda bukan admin.');
-    window.location.href = 'trackmate.html';
-    return;
-  }
-
-  // Inisialisasi fungsionalitas umum
-  // Sudah lolos verifikasi admin -> tampilkan halaman
-  try { document.body.style.visibility = 'visible'; } catch {}
-  if (typeof initSidebar === 'function') initSidebar();
-  if (typeof initLogoutButton === 'function') initLogoutButton();
-  if (typeof initAdminFeatures === 'function') initAdminFeatures();
-
-  // 2. Muat data statistik
+  // Verifikasi admin dan inisialisasi layout sekarang ditangani oleh supabase-client.js dan utils.js.
+  // Cukup panggil fungsi yang spesifik untuk halaman ini.
   loadAdminStats();
 
-  // 3) Event: Reset Semua Data
-const btnAdminResetAll = document.getElementById('btnAdminResetAll');
-btnAdminResetAll?.addEventListener('click', async () => {
-  const confirmationText =
-    "PERINGATAN ADMIN:\n\nAnda akan MENGHAPUS SEMUA DATA ...\n\nKetik 'RESET' untuk konfirmasi.";
-  const userInput = prompt(confirmationText);
-  if (userInput !== 'RESET') {
-    showToast('Reset dibatalkan.', 3000, 'info');
-    return;
-  }
-
-  try {
-    showSpinner();
-
-    // 🔑 AMBIL ACCESS TOKEN USER
-    const { data: sess } = await supabaseClient.auth.getSession();
-    const token = sess?.session?.access_token || null;
-
-    // 🚀 PANGGIL EDGE FUNCTION + KIRIM AUTH HEADER
-    const { data, error } = await supabaseClient.functions.invoke('reset-all-data', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: { confirm: 'RESET' }
-    });
-
-    if (error) {
-      const resp = error?.context?.response;
-      const extra = resp ? ` (HTTP ${resp.status} ${resp.statusText || ''})` : '';
-      throw new Error(error.message + extra);
-    }
-
-    console.log('Respon fungsi:', data);
-    showToast('RESET BERHASIL: Semua data pengguna telah dihapus.', 5000, 'success');
-
-  } catch (err) {
-    console.error('Gagal memanggil fungsi reset:', err);
-    showToast(`RESET GAGAL: ${err.message}`, 5000, 'warn');
-  } finally {
-    hideSpinner();
-  }
-});
+  // Event untuk tombol Reset Semua Data
+  const btnAdminResetAll = document.getElementById('btnAdminResetAll');
+  btnAdminResetAll?.addEventListener('click', handleAdminReset);
 });
 
 /**
@@ -90,12 +21,6 @@ async function loadAdminStats() {
   const totalFilesEl = el('stat-total-files');
   const storageUsageEl = el('stat-storage-usage');
 
-  // Placeholder values
-  if (totalUsersEl) totalUsersEl.textContent = '1';
-  if (monthlyReportsEl) monthlyReportsEl.textContent = '0';
-  if (totalFilesEl) totalFilesEl.textContent = '0';
-  if (storageUsageEl) storageUsageEl.textContent = '0 MB';
-
   if (typeof supabaseClient === 'undefined') return;
 
   // Helper untuk format ukuran
@@ -108,11 +33,6 @@ async function loadAdminStats() {
   };
 
   try {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const monthKey = `${yyyy}-${mm}`; // sesuai kolom month di monthly_reports
-
     // Lakukan paralel untuk kecepatan
     const [
       filesCountRes,
@@ -120,8 +40,7 @@ async function loadAdminStats() {
       sizesUsersRes
     ] = await Promise.all([
       supabaseClient.from('pdf_history').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }).eq('month', monthKey),
-      // Ambil hanya kolom yang diperlukan untuk menghemat payload
+      supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }),
       supabaseClient.from('pdf_history').select('user_id,size_bytes')
     ]);
 
@@ -130,7 +49,7 @@ async function loadAdminStats() {
       totalFilesEl.textContent = String(filesCountRes.count || 0);
     }
 
-    // Laporan bulan ini
+    // Total laporan bulanan
     if (!monthlyCountRes.error && monthlyReportsEl) {
       monthlyReportsEl.textContent = String(monthlyCountRes.count || 0);
     }
@@ -144,11 +63,52 @@ async function loadAdminStats() {
         if (r.user_id) userSet.add(r.user_id);
         if (typeof r.size_bytes === 'number') totalBytes += r.size_bytes;
       }
-      if (totalUsersEl) totalUsersEl.textContent = String(userSet.size || 0);
+      if (totalUsersEl) totalUsersEl.textContent = String(userSet.size);
       if (storageUsageEl) storageUsageEl.textContent = formatBytes(totalBytes);
     }
   } catch (e) {
-    // Biarkan placeholder jika gagal; tampilkan log untuk debugging
     console.warn('Gagal memuat statistik admin:', e);
+  }
+}
+
+/**
+ * Menangani logika untuk mereset semua data melalui Edge Function.
+ */
+async function handleAdminReset() {
+  const confirmationText =
+    "PERINGATAN ADMIN:\n\nAnda akan MENGHAPUS SEMUA DATA pengguna (histori PDF, file di storage, dan laporan bulanan).\n\nKetik 'RESET' untuk konfirmasi.";
+  const userInput = prompt(confirmationText);
+  if (userInput !== 'RESET') {
+    showToast('Reset dibatalkan.', 3000, 'info');
+    return;
+  }
+
+  try {
+    showSpinner();
+
+    // Ambil access token pengguna yang sedang login untuk otorisasi di Edge Function
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Otorisasi gagal: token tidak ditemukan.");
+
+    // Panggil Edge Function 'reset-all-data'
+    const { data, error } = await supabaseClient.functions.invoke('reset-all-data', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: { confirm: 'RESET' }
+    });
+
+    if (error) {
+      const resp = error?.context?.response;
+      const extra = resp ? ` (HTTP ${resp.status} ${resp.statusText || ''})` : '';
+      throw new Error(error.message + extra);
+    }
+
+    showToast('RESET BERHASIL: Semua data pengguna telah dihapus.', 5000, 'success');
+    loadAdminStats(); // Muat ulang statistik setelah reset
+  } catch (err) {
+    showToast(`RESET GAGAL: ${err.message}`, 6000, 'warn');
+  } finally {
+    hideSpinner();
   }
 }

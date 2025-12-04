@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id" class="has-smooth is-page-booting">
+<html lang="id">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,60 +7,11 @@
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="stylesheet" href="style.css"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <script>
-    (function(){
-      const root = document.documentElement;
-      try {
-        if (localStorage.getItem('is_admin_flag') === '1') root.classList.add('is-admin');
-      } catch {}
-      if (!root.classList.contains('has-smooth')) root.classList.add('has-smooth');
-      const reveal = ()=> {
-        root.classList.add('is-page-ready');
-        root.classList.remove('is-page-booting');
-      };
-      if (window.requestAnimationFrame) window.requestAnimationFrame(reveal);
-      else setTimeout(reveal, 0);
-    })();
-  </script>
 </head>
-  <body data-page="appsheet">
+  <body data-page="appsheet" class="is-page-booting">
   <div class="dashboard">
-    <aside class="sidebar">
-      <h2 class="logo">
-      <img src="favicon.png" alt="Logo" class="logo-icon" />
-       BRIBOX KANPUS</h2>
-       
-      <nav>
-        <a href="trackmate.html"><span class="material-icons" aria-hidden="true">settings</span> Trackmate</a>
-        <a href="appsheet.html" class="active"><span class="material-icons" aria-hidden="true">apps</span> AppSheet</a>
-        <a href="formserahterima.html"><span class="material-icons" aria-hidden="true">handshake</span> Form Serah Terima</a>
-        <!-- Parent collapsible Monthly Report -->
-        <button class="nav-group" type="button"
-        aria-controls="nav-monthly" aria-expanded="false"
-        onclick="
-        const t=this, m=document.getElementById('nav-monthly');
-        const ex=t.getAttribute('aria-expanded')==='true';
-        t.setAttribute('aria-expanded', String(!ex)); 
-        m.hidden=ex;
-      "><span class="material-icons" aria-hidden="true">event_note</span> Monthly Report</button>
-
-      <!-- Submenu Monthly -->
-        <div id="nav-monthly" class="submenu" hidden>
-          <a href="monthly-report/monthly-form.html">Monthly Form</a>
-          <a href="monthly-report/monthly-data.html">Monthly Data</a>
-        </div>
-      </nav>
-      <div class="sidebar-credit" aria-label="Project credit">
-        Web App Created By BangAtuy - 2025
-      </div>
-    </aside>
-
     <main class="main">
-      <header class="dashboard-header">
-        <button class="sidebar-toggle-btn">☰</button>
-        <h1 class="page-subtitle">AppSheet</h1>
-        <button id="btnLogout" class="header-logout-btn" title="Logout"><img class="logout-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Logout" loading="lazy"></button>
-      </header>
+      <h1 class="page-title-source" hidden>AppSheet</h1>
 
       <section class="card">
         <h3>Upload Form PDF Kalian Disini Lalu Pilih Lokasi Divisi!</h3>
@@ -77,7 +28,7 @@
       </div>
 
         <pre id="output" class="output-preview">Text akan muncul di sini...</pre>
-        <button id="copyBtn" class="primary">Copy</button>
+        <button id="copyBtn" class="primary" type="button">Copy</button>
       </section>
     </main>
   </div>
@@ -92,74 +43,5 @@
   <script src="utils.js" defer></script>
   <script src="supabase-client.js" defer></script>
   <script src="appsheet.js" defer></script>
-
-  <!-- ===== Bottom Navigation (muncul hanya di mobile via CSS) ===== -->
-  <nav class="bottom-nav" role="navigation" aria-label="Main">
-  <a class="bn-item bn-trackmate" href="trackmate.html" data-page="trackmate">
-    <span class="material-icons" aria-hidden="true">settings</span>
-    <span class="bn-txt">Trackmate</span>
-  </a>
-
-  <a class="bn-item bn-appsheet" href="appsheet.html" data-page="appsheet">
-    <span class="material-icons" aria-hidden="true">apps</span>
-    <span class="bn-txt">AppSheet</span>
-  </a>
-
-  <a class="bn-item bn-serah" href="formserahterima.html" data-page="serah">
-    <span class="material-icons" aria-hidden="true">handshake</span>
-    <span class="bn-txt">Serah Terima</span>
-  </a>
-
-  <!-- Monthly parent — trigger submenu -->
-  <button class="bn-item bn-monthly-trigger" type="button"
-        aria-expanded="false" aria-controls="bn-submonthly">
-  <span class="material-icons" aria-hidden="true">event_note</span>
-  <span class="bn-txt">Monthly Report</span>
-</button>
-
-<!-- Tombol Admin (Mobile) -->
-<a class="bn-item bn-admin" href="admin.html" data-page="admin" hidden>
-  <span class="material-icons" aria-hidden="true">admin_panel_settings</span>
-  <span class="bn-txt">Admin</span>
-</a>
-</nav>
-
-<!-- Submenu yang muncul di atas bottom-nav (khusus Mobile) -->
-<div class="bn-submenu" id="bn-submonthly" hidden>
-  <a href="monthly-report/monthly-form.html" class="bn-subitem">
-    <span class="material-icons" aria-hidden="true">note_add</span>
-    <span>Monthly Form</span>
-  </a>
-  <a href="monthly-report/monthly-data.html" class="bn-subitem">
-    <span class="material-icons" aria-hidden="true">view_list</span>
-    <span>Monthly Data</span>
-  </a>
-</div>
-
-  <!-- Fallback: kalau suatu halaman belum set data-page, tebak dari URL -->
-  <script>
-  (function(){
-    const trigger = document.querySelector('.bn-monthly-trigger');
-    const menu = document.getElementById('bn-submonthly');
-
-    if(trigger && menu){
-      const close = ()=>{ trigger.setAttribute('aria-expanded','false'); menu.hidden = true; };
-
-      trigger.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const open = trigger.getAttribute('aria-expanded') === 'true';
-        if(open){ close(); }
-        else { trigger.setAttribute('aria-expanded','true'); menu.hidden = false; }
-      });
-
-      // klik di luar/ESC untuk nutup
-      document.addEventListener('click', (e)=>{
-        if(!menu.hidden && !menu.contains(e.target) && !trigger.contains(e.target)) close();
-      });
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
-    }
-  })();
-</script>
 </body>
 </html>
-

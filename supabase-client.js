@@ -67,9 +67,13 @@ if (!path.endsWith('/') && !path.endsWith('/index.html')) {
 
       // Jangan panggil initGlobalLayout sembarang halaman.
       // Hanya jalankan bila marker elemen layout tersedia.
-      const hasLayoutAnchor = document.getElementById('page-content');
-      if (typeof initGlobalLayout === 'function' && hasLayoutAnchor) {
-        await initGlobalLayout();
+      const dashboardElement = document.querySelector('.dashboard');
+      if (typeof injectGlobalLayout === 'function' && dashboardElement) {
+        injectGlobalLayout();
+        // Panggil initAdminFeatures SETELAH layout dibuat untuk menambahkan link admin.
+        if (typeof initAdminFeatures === 'function') {
+          await initAdminFeatures();
+        }
       }
     }
   });

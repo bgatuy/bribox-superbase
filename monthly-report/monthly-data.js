@@ -1,19 +1,5 @@
 // monthly-data.js — INDIVIDUAL BUILD (XLSX only, per-device Active Technician, fixed signatures)
 (function () {
-  document.addEventListener('DOMContentLoaded', function () {
-    const title = document.querySelector('.dashboard-header h1')?.textContent?.toLowerCase() || "";
-    const body = document.body;
-    if (title.includes('trackmate'))      body.setAttribute('data-page', 'trackmate');
-    else if (title.includes('appsheet'))  body.setAttribute('data-page', 'appsheet');
-    else if (title.includes('serah'))     body.setAttribute('data-page', 'serah');
-    else if (title.includes('merge'))     body.setAttribute('data-page', 'merge');
-
-    if (typeof initSidebar === 'function') initSidebar();
-    if (typeof initAdminFeatures === 'function') initAdminFeatures();
-    if (typeof initLogoutButton === 'function') initLogoutButton();
-    applyFilters();
-  });
-
   // ===== utils
   const $ = (id) => document.getElementById(id);
   const pad = (n) => String(n).padStart(2, "0");
@@ -731,4 +717,6 @@
   btnExportXlsx && btnExportXlsx.addEventListener('click', exportXLSX);
   btnReset && btnReset.addEventListener('click', resetMonth);
 
+  // Jalankan filter saat halaman dimuat
+  document.addEventListener('DOMContentLoaded', applyFilters);
 })();
