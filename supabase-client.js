@@ -13,10 +13,11 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ==================================================
 // Cek jika kita TIDAK sedang di halaman login (yaitu bukan di index.html atau /)
 function __getAppRoot() {
-  const p = window.location.pathname || '/';
-  const idx = p.indexOf('/monthly-report/');
-  if (idx >= 0) return p.slice(0, idx + 1);
-  return p.replace(/[^\/]*$/, '');
+  const path = window.location.pathname;
+  if (path.includes('/monthly-report/')) {
+    return path.substring(0, path.indexOf('/monthly-report/')) + '/';
+  }
+  return path.substring(0, path.lastIndexOf('/') + 1);
 }
 const path = window.location.pathname;
 // Jika di admin.html, sembunyikan konten sampai verifikasi role selesai
