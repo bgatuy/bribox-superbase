@@ -476,12 +476,12 @@ copyBtn?.addEventListener("click", async () => {
     });
     if (dbError) throw new Error(`Simpan DB gagal: ${dbError.message}`);
 
-    showToast("Berhasil disimpan ke server.", 3000, "success");
+    showToast("Berhasil menyimpan data.", 3000, "success");
   } catch (err) {
     console.error("Copy handler error:", err);
     const msg = String(err?.message || err || '').trim();
     if (/failed to fetch/i.test(msg)) {
-      showToast("Upload gagal: koneksi ke Supabase Storage terputus/terblokir. Coba matikan VPN/Private DNS/Ad-block, gunakan Wi‑Fi yang sama dengan laptop, atau coba ulang.", 6000, 'warn');
+      showToast("Gagal menyimpan data: Cek koneksi dan coba lagi.", 6000, 'warn');
     } else {
       showToast(`Error: ${msg}`, 5000, "warn");
     }
