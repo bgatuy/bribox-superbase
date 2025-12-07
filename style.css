@@ -488,9 +488,10 @@ body[data-page="serah"] .table td {
 }
 .controls-bar .btn-row,
 .controls-bar .controls-right button {
-  margin: 0;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.85rem;
+  margin: 0; /* Reset margin */
+  padding: 0.7rem 1.3rem; /* Sedikit lebih besar untuk tinggi ~40px */
+  font-size: 0.9rem; /* Sedikit lebih besar agar proporsional */
+  line-height: 1; /* Pastikan teks di tengah vertikal */
 }
 
 /* =========================
@@ -704,7 +705,8 @@ dialog .dialog-actions button.btn.secondary:hover {
   }
   body[data-page="serah"] .controls-bar .controls-right {
     margin-left: 0; /* Override desktop style */
-    gap: 0.75rem; /* Smaller gap for buttons on mobile */
+    gap: 1rem; /* Jarak antar tombol di mobile */
+    justify-content: center; /* Center the buttons */
   }
   /* Ensure the input/select inside the group fills its container */
   body[data-page="serah"] .controls-bar .controls-left .form-group input,
