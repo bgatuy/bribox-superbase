@@ -81,13 +81,14 @@ body[data-page="monthly"] .table thead th{
   white-space:nowrap;
   padding: 8px 16px; /* Dibuat lebih rapat */
   font-weight: 700; /* Dibuat lebih tebal */
+  background: #f8fafc;
 }
 
 /* Baris 1: Tanggal, Teknisi, Lokasi, Waktu, dst. */
 body[data-page="monthly"] .table thead tr.h1 th{
   position:sticky; top:0; z-index:4; /* Naikkan agar di atas baris header kedua */
   /* Garis tipis untuk memisahkan dari baris header kedua */
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 /* Baris 2: sub-kolom (Dari/Ke, Jam..., dst.) */
