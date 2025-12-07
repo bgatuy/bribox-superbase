@@ -13,31 +13,34 @@
     <main class="main">
       <h1 class="page-title-source" hidden>Form Serah Terima</h1>
 
-      <div class="controls-bar">
+      <div class="card controls-bar">
         <div class="controls-left">
-          <label for="tglSerahTerima">Tanggal Serah Terima</label>
-          <input type="date" id="tglSerahTerima" name="tgl_serah_terima" />
+          <div class="form-group">
+            <label for="tglSerahTerima">Tanggal Serah Terima</label>
+            <input type="date" id="tglSerahTerima" name="tgl_serah_terima" />
+          </div>
+          <div class="form-group">
+            <label for="selNamaTTD">Nama TTD</label>
+            <select id="selNamaTTD">
+              <option value="">-- Pilih Nama --</option>
+              <option>Mochammad Fathur Rachman</option>
+              <option>Muhammad Farhan Baihaqi</option>
+              <option>Halviansyah Wildana</option>
+              <option>Dafa Farabi</option>
+              <option>Azriel Raja Simamora</option>
+              <option>Dimas Pujianto</option>
+            </select>
+          </div>
         </div>
 
-        <label for="selNamaTTD">Input Nama Untuk Kolom TTD</label>
-        <select id="selNamaTTD">
-          <option value="">-- Pilih Nama --</option>
-          <option>Mochammad Fathur Rachman</option>
-          <option>Muhammad Farhan Baihaqi</option>
-          <option>Halviansyah Wildana</option>
-          <option>Dafa Farabi</option>
-          <option>Azriel Raja Simamora</option>
-          <option>Dimas Pujianto</option>
-        </select>
-
-        <div class="controls-right btn-row">
+        <div class="controls-right">
           <button id="btnGenCombo" class="primary" type="button" title="Buat FORM CM lalu gabung dengan PDF asli terpilih">
             Generate FST + PDF
           </button>
-          <button id="btnGenCMOnly" type="button" title="Hanya buat FORM Tanda Terima CM">
+          <button id="btnGenCMOnly" class="teal" type="button" title="Hanya buat FORM Tanda Terima CM">
             Generate FST
           </button>
-          <button id="btnGenFilesOnly" type="button" title="Gabungkan hanya PDF asli yang dipilih">
+          <button id="btnGenFilesOnly" class="amber" type="button" title="Gabungkan hanya PDF asli yang dipilih">
             Generate File PDF
           </button>
           <button id="btnReset" class="danger" type="button" title="Hapus histori tersimpan">
@@ -46,36 +49,38 @@
         </div>
       </div>
 
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="text-align:center;"><input id="pickAll" type="checkbox" title="Pilih semua"></th>
-              <th style="text-align:center;">NO.</th>
-              <th style="text-align:center;">TANGGAL SERAH TERIMA</th>
-              <th style="text-align:center;">NAMA UKER</th>
-              <th style="text-align:center;">TANGGAL PEKERJAAN</th>
-              <th style="text-align:center;">FILE PDF</th>
-              <th style="text-align:center;">AKSI</th>
-            </tr>
-          </thead>
-          <tbody id="historiBody">
-            <tr>
-              <td colspan="7" style="text-align:center;">
-                Belum ada data histori. Unggah PDF di Trackmate atau AppSheet.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <section class="card">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 50px;"><input id="pickAll" type="checkbox" title="Pilih semua"></th>
+                <th class="text-center" style="width: 50px;">NO.</th>
+                <th class="text-center">TANGGAL SERAH TERIMA</th>
+                <th class="text-center">NAMA UKER</th>
+                <th class="text-center">TANGGAL PEKERJAAN</th>
+                <th class="text-center">FILE PDF</th>
+                <th class="text-center" style="width: 120px;">AKSI</th>
+              </tr>
+            </thead>
+            <tbody id="historiBody">
+              <tr>
+                <td colspan="7" class="text-center">
+                  Belum ada data histori. Unggah PDF di Trackmate atau AppSheet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Dialog pilih PDF asli (untuk Generate File PDF & Gabungan) -->
       <dialog id="pickDialog">
-        <form method="dialog" style="min-width:420px;max-width:90vw">
-          <h3 style="margin:0 0 8px;">Pilih PDF Asli</h3>
-          <input id="pickSearch" type="search" placeholder="Cari nama file / uker..." style="width:100%;margin-bottom:8px;" />
+        <form method="dialog">
+          <h3>Pilih PDF Asli</h3>
+          <input id="pickSearch" type="search" placeholder="Cari nama file / uker..." />
 
-          <div style="max-height:45vh;overflow:auto;border:1px solid var(--border,#ddd);border-radius:8px;padding:8px;">
+          <div class="dialog-list-wrapper">
             <label style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
               <input id="pickAllDlg" type="checkbox" />
               <b>Pilih semua</b>
@@ -83,8 +88,8 @@
             <div id="pickList"></div>
           </div>
 
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
-            <button value="cancel" type="submit">Batal</button>
+          <div class="dialog-actions">
+            <button value="cancel" type="submit" class="btn secondary">Batal</button>
             <button id="pickOk" value="ok" class="primary" type="submit">OK</button>
           </div>
         </form>

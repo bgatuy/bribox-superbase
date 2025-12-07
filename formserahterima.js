@@ -139,7 +139,9 @@ async function renderTabel(){
       <td>${(item.nama_uker || '-').replace(/\s+/g,' ').trim()}</td>
       <td>${item.tanggal_pekerjaan || '-'}</td>
       <td>${item.file_name || '-'}</td>
-      <td><button class="danger btn-del" data-i="${idx}">Hapus</button></td>
+      <td class="aksi text-center">
+        <button class="btn-del" data-i="${idx}" title="Hapus entri"><span class="material-icons">delete</span></button>
+      </td>
     </tr>`;
   }).join('');
 
