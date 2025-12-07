@@ -1,8 +1,8 @@
 // supabase-client.js
 
 // Ganti dengan URL dan anon key dari proyek Supabase Anda
-const SUPABASE_URL = 'https://hfwklepqsiwubjxatmsq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhmd2tsZXBxc2l3dWJqeGF0bXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwODk5MDAsImV4cCI6MjA3NzY2NTkwMH0.gWi8ukCILo11q-3wToMZQ4aHOLrp19Ss8jZoDHMJusY';
+const SUPABASE_URL = 'https://yaajbonefhpdeehdkujr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYWpib25lZmhwZGVlaGRrdWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzA3MDAsImV4cCI6MjA4MDYwNjcwMH0.UjM0CrVxwKR-jiMNICqRx-Njgzw7SexmBNRCsrXHqKI';
 
 // Inisialisasi Supabase client. Variabel `supabaseClient` akan tersedia secara global.
 const { createClient } = supabase;
