@@ -6,11 +6,17 @@
   <title>Admin - BRIBOX KANPUS</title>
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Icons and Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <style>
-    .admin-card {
-      max-width: 600px;
-      margin: 2rem auto;
+    /* General Body & Layout */
+    body {
+      background-color: #f8f9fa; /* Light gray background */
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #334155;
     }
     .admin-card h3 {
       color: #b91c1c; /* Merah tua */
@@ -35,7 +41,20 @@
       background-color: #b91c1c;
     }
 
-    /* Gaya untuk layout baru */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    h1, h2, h3, h4 {
+      color: #1e293b;
+      font-weight: 600;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    /* Statistics Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -43,25 +62,146 @@
       margin-bottom: 2rem;
     }
     .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
       background: #fff;
-      padding: 1.25rem;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+    .stat-icon-wrapper {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stat-icon-wrapper .material-icons {
+      font-size: 28px;
     }
     .stat-card h4 {
       font-size: 0.9rem;
-      color: #6b7280;
+      color: #64748b;
       margin: 0 0 0.5rem;
-      font-weight: 600;
+      font-weight: 500;
     }
     .stat-value {
-      font-size: 2.25rem;
+      font-size: 2rem;
       font-weight: 700;
-      color: #111827;
+      color: #1e293b;
+      line-height: 1.2;
     }
+
+    /* User Management Table */
+    .user-management-section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      margin-bottom: 2rem;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    #user-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    #user-table thead {
+      background-color: #f8fafc;
+    }
+    #user-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    #user-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    #user-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    #user-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+    .role-badge {
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .role-admin {
+      background-color: #fef2f2; /* Light red */
+      color: #b91c1c;
+    }
+    .role-user {
+      background-color: #eff6ff; /* Light blue */
+      color: #1d4ed8;
+    }
+    .actions .btn-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+    .actions .btn-icon .material-icons {
+      font-size: 20px;
+      color: #94a3b8;
+      transition: color 0.2s;
+    }
+    .actions .btn-icon:hover {
+      background-color: #fee2e2;
+    }
+    .actions .btn-icon:hover .material-icons {
+      color: #ef4444;
+    }
+    .role-selector {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      cursor: pointer;
+      width: 100%;
+      max-width: 100px;
+    }
+    .role-selector:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+      border-color: #3b82f6;
+    }
+    .actions .btn-icon:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Danger Zone */
     .danger-zone {
-      border: 2px solid #fecaca;
-      background: #fff7f7;
+      border: 1px solid #fca5a5;
+      background: #fff1f2;
     }
     .danger-zone h3 {
       color: #b91c1c;
@@ -72,6 +212,18 @@
     }
     .danger-zone p {
       font-size: 0.9rem;
+      color: #7f1d1d;
+      margin: 0;
+    }
+    .btn-reset-all {
+      background-color: #ef4444;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      transition: background-color 0.2s;
     }
   </style>
 </head>
@@ -79,26 +231,70 @@
   <div class="dashboard">
     <main class="main">
       <h1 class="page-title-source" hidden>Halaman Admin</h1>
+      <h2>Dasbor Admin</h2>
 
       <!-- Kartu Statistik -->
       <div class="stats-grid">
         <div class="stat-card">
-          <h4>Total Pengguna</h4>
-          <div id="stat-total-users" class="stat-value">...</div>
+          <div class="stat-icon-wrapper" style="background-color: #e0f2fe;">
+            <span class="material-icons" style="color: #0ea5e9;">group</span>
+          </div>
+          <div>
+            <h4>Total Pengguna</h4>
+            <div id="stat-total-users" class="stat-value">...</div>
+          </div>
         </div>
         <div class="stat-card">
-          <h4>Total Monthly Report</h4>
-          <div id="stat-monthly-reports" class="stat-value">...</div>
+          <div class="stat-icon-wrapper" style="background-color: #e0e7ff;">
+            <span class="material-icons" style="color: #4f46e5;">description</span>
+          </div>
+          <div>
+            <h4>Total Monthly Report</h4>
+            <div id="stat-monthly-reports" class="stat-value">...</div>
+          </div>
         </div>
         <div class="stat-card">
-          <h4>Total File PDF</h4>
-          <div id="stat-total-files" class="stat-value">...</div>
+          <div class="stat-icon-wrapper" style="background-color: #dcfce7;">
+            <span class="material-icons" style="color: #16a34a;">picture_as_pdf</span>
+          </div>
+          <div>
+            <h4>Total File PDF</h4>
+            <div id="stat-total-files" class="stat-value">...</div>
+          </div>
         </div>
         <div class="stat-card">
-          <h4>Penggunaan Storage</h4>
-          <div id="stat-storage-usage" class="stat-value">...</div>
+          <div class="stat-icon-wrapper" style="background-color: #f3e8ff;">
+            <span class="material-icons" style="color: #7e22ce;">storage</span>
+          </div>
+          <div>
+            <h4>Penggunaan Storage</h4>
+            <div id="stat-storage-usage" class="stat-value">...</div>
+          </div>
         </div>
       </div>
+
+      <!-- Manajemen Pengguna -->
+      <section class="user-management-section">
+        <h2>Manajemen Pengguna</h2>
+        <div class="table-container">
+          <table id="user-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Tanggal Bergabung</th>
+                <th>Terakhir Login</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Memuat data pengguna...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Zona Berbahaya -->
       <section class="card danger-zone">
@@ -106,9 +302,9 @@
         <div class="action-item" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
           <div>
             <strong>Reset Semua Data Pengguna</strong>
-            <p>Tindakan ini akan menghapus semua laporan dan file PDF dari semua pengguna secara permanen. Gunakan hanya untuk maintenance bulanan.</p>
+            <p>Tindakan ini akan menghapus semua laporan dan file PDF dari semua pengguna secara permanen.</p>
           </div>
-          <button id="btnAdminResetAll" class="btn-reset-all" type="button" style="flex-shrink: 0;">Reset Semua Data</button>
+          <button id="btnAdminResetAll" class="btn btn-reset-all" type="button" style="flex-shrink: 0;">Reset Semua Data</button>
         </div>
       </section>
     </main>
