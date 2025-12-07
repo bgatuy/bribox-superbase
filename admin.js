@@ -33,41 +33,28 @@ async function loadAdminStats() {
   };
 
   try {
-    // Lakukan paralel untuk kecepatan
-    const [
-      filesCountRes,
-      monthlyCountRes,
-      sizesUsersRes
-    ] = await Promise.all([
-      supabaseClient.from('pdf_history').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('monthly_reports').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('pdf_history').select('user_id,size_bytes')
-    ]);
+    // Panggil satu RPC function yang akan menghitung semua statistik di sisi server
+    const { data: stats, error } = await supabaseClient.rpc('get_admin_stats');
 
-    // Total file PDF
-    if (!filesCountRes.error && totalFilesEl) {
-      totalFilesEl.textContent = String(filesCountRes.count || 0);
+    if (error) {
+      throw error;
     }
 
-    // Total laporan bulanan
-    if (!monthlyCountRes.error && monthlyReportsEl) {
-      monthlyReportsEl.textContent = String(monthlyCountRes.count || 0);
-    }
-
-    // Total pengguna (distinct user_id) + total size
-    if (!sizesUsersRes.error && Array.isArray(sizesUsersRes.data)) {
-      const rows = sizesUsersRes.data;
-      let totalBytes = 0;
-      const userSet = new Set();
-      for (const r of rows) {
-        if (r.user_id) userSet.add(r.user_id);
-        if (typeof r.size_bytes === 'number') totalBytes += r.size_bytes;
-      }
-      if (totalUsersEl) totalUsersEl.textContent = String(userSet.size);
-      if (storageUsageEl) storageUsageEl.textContent = formatBytes(totalBytes);
+    if (stats) {
+      if (totalFilesEl) totalFilesEl.textContent = String(stats.total_files || 0);
+      if (monthlyReportsEl) monthlyReportsEl.textContent = String(stats.monthly_reports || 0);
+      if (totalUsersEl) totalUsersEl.textContent = String(stats.total_users || 0);
+      if (storageUsageEl) storageUsageEl.textContent = formatBytes(stats.storage_usage || 0);
     }
   } catch (e) {
     console.warn('Gagal memuat statistik admin:', e);
+    // Tampilkan pesan error di UI agar admin tahu ada masalah
+    const statCards = document.querySelectorAll('.stat-card .stat-value');
+    statCards.forEach(card => {
+        card.textContent = 'Error';
+        card.style.color = '#dc3545'; // Merah
+    });
+    showToast?.(`Gagal memuat statistik: ${e.message}`, 5000, 'warn');
   }
 }
 
