@@ -1,8 +1,19 @@
 // supabase-client.js
 
-// Ganti dengan URL dan anon key dari proyek Supabase Anda
-const SUPABASE_URL = 'https://yaajbonefhpdeehdkujr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYWpib25lZmhwZGVlaGRrdWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzA3MDAsImV4cCI6MjA4MDYwNjcwMH0.UjM0CrVxwKR-jiMNICqRx-Njgzw7SexmBNRCsrXHqKI';
+/**
+ * =================================================================================
+ * SARAN KEAMANAN (PENTING): Gunakan Environment Variables untuk menyimpan kunci Supabase.
+ * 
+ * Jangan letakkan kunci API langsung di dalam kode (hardcode) seperti di bawah ini.
+ * Ini sangat berisiko karena siapa saja bisa melihatnya di browser dan menyalahgunakan
+ * akun Supabase Anda (menghabiskan kuota, memasukkan data sampah, dll).
+ * 
+ * Praktik terbaik adalah menyimpannya di fitur "Environment Variables" pada platform
+ * hosting Anda (misalnya Vercel, Netlify, atau GitHub Secrets untuk GitHub Pages).
+ * =================================================================================
+ */
+const SUPABASE_URL = 'https://yaajbonefhpdeehdkujr.supabase.co'; // <-- Pindahkan ke Environment Variable di production
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYWpib25lZmhwZGVlaGRrdWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzA3MDAsImV4cCI6MjA4MDYwNjcwMH0.UjM0CrVxwKR-jiMNICqRx-Njgzw7SexmBNRCsrXHqKI'; // <-- Pindahkan ke Environment Variable di production
 
 // Inisialisasi Supabase client. Variabel `supabaseClient` akan tersedia secara global.
 const { createClient } = supabase;
