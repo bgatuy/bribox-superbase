@@ -17,10 +17,6 @@ body {
   --duration-page:320ms;
   --duration-ui:220ms;
   --shadow-soft:0 18px 40px rgba(15,23,42,.15);
-
-  --serah-head-bg:#2563EB; --serah-head-ink:#fff; --serah-head-border:#d6e8ff;
-  --serah-aksi-head:#ffe8e8; --serah-aksi-ink:#7f1d1d;
-  --serah-row-even:#fafcff; --serah-row-hover:#f3f9ff;
 }
 
 html.has-smooth body{
@@ -105,7 +101,6 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
   border:0; background:transparent; cursor:pointer;
   width:100%; text-align:left; font:inherit; font-weight:400;
 }
-.sidebar nav .nav-group:hover{ background:rgba(255,255,255,.06); }
 .sidebar nav .nav-group.has-active{ color:#fff; background: #1f2937; }
 
 /* caret kanan */
@@ -135,10 +130,6 @@ nav{ display:flex; flex-direction:column; gap:.8rem; }
 .dashboard-header{
   display:flex; justify-content:space-between; align-items:center;
   margin-bottom:1.5rem; min-height:40px; position:relative;
-}
-.sidebar-toggle-btn{
-  display:none; background:none; border:0; font-size:1.6rem; margin-right:1rem;
-  cursor:pointer; color:#111;
 }
 /* title absolute center (desktop) */
 .dashboard-header .page-title,
@@ -572,7 +563,6 @@ dialog .dialog-actions button.btn.secondary:hover {
 @media (max-width:768px){
   /* sembunyikan sidebar & burger */
   .sidebar, .sidebar-overlay{ display:none !important; }
-  .sidebar-toggle-btn{ display:none !important; }
 
   .main{ padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
 
@@ -672,7 +662,6 @@ dialog .dialog-actions button.btn.secondary:hover {
     grid-column: 1 / -1; justify-self:center; margin:0;
     font-size:20px; text-align:center; display:flex; align-items:center; gap:5px; pointer-events:none; z-index:1;
   }
-  .sidebar-toggle-btn{ grid-column:1; justify-self:start; z-index:2; }
   .dashboard-header .page-credit,
   .dashboard-header .right-slot{ grid-column:3; justify-self:end; z-index:2; }
 

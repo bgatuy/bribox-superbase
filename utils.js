@@ -203,7 +203,6 @@ function injectGlobalLayout() {
 
   const headerHTML = `
     <header class="dashboard-header">
-      <button class="sidebar-toggle-btn" type="button" aria-label="Toggle sidebar">☰</button>
       <h1 class="page-subtitle"></h1>
       <button id="btnLogout" class="header-logout-btn" title="Logout">
         <img class="logout-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Logout" loading="lazy">
@@ -270,7 +269,6 @@ function injectGlobalLayout() {
   });
 
   // Inisialisasi event listener untuk komponen yang baru dibuat
-  initSidebar();
   initLogoutButton();
   initMobileSubmenu();
   const navGroup = document.querySelector('.nav-group');
@@ -279,24 +277,6 @@ function injectGlobalLayout() {
     navGroup.setAttribute('aria-expanded', String(!isExpanded));
     document.getElementById('nav-monthly').hidden = isExpanded;
   });
-}
-
-/** Inisialisasi fungsionalitas sidebar */
-function initSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const toggleBtn = document.querySelector('.sidebar-toggle-btn');
-  const overlay = document.getElementById('sidebarOverlay') || document.querySelector('.sidebar-overlay');
-  const sidebarLinks = document.querySelectorAll('.sidebar a');
-
-  function openSidebar() { sidebar.classList.add('visible'); overlay?.classList.add('show'); document.body.style.overflow = 'hidden'; }
-  function closeSidebar() { sidebar.classList.remove('visible'); overlay?.classList.remove('show'); document.body.style.overflow = ''; }
-  function toggleSidebar() { sidebar.classList.contains('visible') ? closeSidebar() : openSidebar(); }
-
-  // Hubungkan tombol toggle
-  toggleBtn?.addEventListener('click', toggleSidebar);
-  overlay?.addEventListener('click', closeSidebar);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sidebar.classList.contains('visible')) closeSidebar(); });
-  sidebarLinks.forEach(a => a.addEventListener('click', closeSidebar));
 }
 
 /**
