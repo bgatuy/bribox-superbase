@@ -19,7 +19,7 @@ const pickAllCheckbox = document.getElementById('pickAll');
 
 // Debug flags
 const DEBUG_SHOW_MARKER = false;   // titik oranye
-const DEBUG_CONSOLE_LOG = false;   // log stamping & meta
+const DEBUG_CONSOLE_LOG = false;   // Kembalikan ke false setelah masalah selesai
 
 /********************
  *   SIDEBAR/UX     *
@@ -44,6 +44,7 @@ async function getUserOrThrow() {
  *   UTILITIES      *
  ********************/
 const stripLeadingColon = (s) => (s || '').replace(/^\s*:+\s*/, '');
+const cleanHashForComparison = (str) => (str || '').replace(/[^0-9a-fA-F]/g, ''); // Lebih agresif: hanya sisakan hex
 function toNumDateDMY(s){const m=(s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/); if(!m) return 0; const ts=Date.parse(`${m[3]}-${m[2]}-${m[1]}`); return Number.isNaN(ts)?0:ts;}
 function formatTanggalSerahForPdf(val){ if(!val||!/^\d{4}-\d{2}-\d{2}$/.test(val)) return '-'; const [y,m,d]=val.split('-'); return `${d}/${m}/${y}`;}
 
@@ -218,6 +219,40 @@ async function fetchPdfBuffersBySelection(selected) {
     if (hit) out.push(hit);
   }
   return out;
+}
+
+/**
+ * Cepat: Hanya ambil DAFTAR NAMA file dari Supabase Storage, tanpa download isinya.
+ * Ini jauh lebih efisien daripada getAllPdfBuffersFromSupabase untuk sekadar validasi.
+ * @returns {Promise<{byHash: Set<string>, byName: Set<string>}>}
+ */
+async function getExistingFileNamesFromSupabase() {
+  if (!supabaseClient) return { byHash: new Set(), byName: new Set() };
+  const user = await getUserOrThrow();
+
+  // Hanya minta daftar file, bukan kontennya. Ini sangat cepat.
+  const { data: files, error: listError } = await supabaseClient.storage
+    .from('pdf-forms')
+    // FIX: Hapus opsi 'search' yang salah. Opsi ini mencari file yang namanya *dimulai* dengan '.pdf', yang mana tidak akan pernah cocok.
+    .list(user.id, { limit: 1000 }); // Hapus , search: '.pdf' dari sini jika masih ada.
+
+  if (listError) {
+    console.error("Gagal ambil daftar file dari Supabase:", listError);
+    throw listError;
+  }
+
+  const cleanedFileHashes = (files || [])
+    .map(f => cleanHashForComparison(f.name.replace(/\.pdf$/i, '')))
+    .filter(Boolean); // Pastikan tidak ada string kosong
+  
+  const byName = new Set((files || []).map(f => f.name));
+  const byHash = new Set(cleanedFileHashes);
+  
+  if (DEBUG_CONSOLE_LOG) {
+    console.log('%cDEBUG: Hashes dari Supabase Storage (sudah dibersihkan):', 'color:blue; font-weight:bold;', Array.from(byHash));
+  }
+
+  return { byHash, byName };
 }
 
 /*****************************************
@@ -418,19 +453,25 @@ function getSelectedFromTable(){
   const picked = rows.filter(r => r.querySelector('input.pick')?.checked);
   const base = (picked.length ? picked : rows);
   return base.map(r => ({
-    hash: r.getAttribute('data-hash') || '',
-    name: r.getAttribute('data-name') || ''
+    hash: cleanHashForComparison(r.getAttribute('data-hash')),
+    name: (r.getAttribute('data-name') || '').trim() // Nama file boleh punya spasi, jadi tetap pakai trim biasa
   }));
 }
 
 async function checkMissingSelection(selected){
-  const all = await getAllPdfBuffersFromSupabase();
-  const byHash = new Set(all.map(x=>x.contentHash).filter(Boolean));
-  const byName = new Set(all.map(x=>x.name).filter(Boolean));
+  // OPTIMASI: Gunakan fungsi yang hanya me-list nama file, bukan mengunduh semua isinya.
+  const { byHash, byName } = await getExistingFileNamesFromSupabase();
   const missing = [];
+
   for (const s of selected){
-    const ok = (s.hash && byHash.has(s.hash)) || (s.name && byName.has(s.name));
-    if (!ok) missing.push(s);
+    // Pengecekan paling andal adalah berdasarkan content_hash yang sudah dibersihkan.
+    const ok = (s.hash && byHash.has(s.hash));
+    if (!ok) {
+      if (DEBUG_CONSOLE_LOG) {
+        console.error('DEBUG: HASH TIDAK DITEMUKAN ->', `"${s.hash}"`, '(dari tabel HTML)');
+      }
+      missing.push(s);
+    }
   }
   return missing;
 }
@@ -739,72 +780,102 @@ btnReset?.addEventListener('click', async ()=>{
 
 // ========== TOMBOL LAMA: generate gabungan (semua) ==========
 btnGenerate?.addEventListener('click', async ()=>{
+  const btn = btnGenerate;
   const tanggalInput = inputTanggalSerah.value;
   if(!tanggalInput){ alert('Silakan isi tanggal serah terima terlebih dahulu.'); return; }
 
-  const selected = getSelectedFromTable(); // semua jika tidak ada yang dicentang
-  const missing = await checkMissingSelection(selected);
-  if (missing.length){
-    markMissingRows(missing);
-    const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
-    if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
-      hideSpinner?.(); return;
+  btn.disabled = true;
+  showSpinner?.();
+  try{
+    const selected = getSelectedFromTable(); // semua jika tidak ada yang dicentang
+    const missing = await checkMissingSelection(selected);
+    if (missing.length){
+      markMissingRows(missing);
+      const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
+      if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
+        return;
+      }
     }
+    await generatePdfSerahTerima();
   }
-
-  try{ showSpinner?.(); await generatePdfSerahTerima(); }
   catch(err){ console.error(err); alert('Gagal generate PDF. Pastikan jsPDF, AutoTable, PDF-lib & PDF.js sudah dimuat.'); }
-  finally{ hideSpinner?.(); }
+  finally{
+    hideSpinner?.();
+    btn.disabled = false;
+  }
 });
 
 // ========== TOMBOL BARU (jika ada di HTML) ==========
 btnGenCombo?.addEventListener('click', async ()=>{
+  const btn = btnGenCombo;
   const tanggalInput = inputTanggalSerah?.value || '';
   if(!tanggalInput){ alert('Isi Tanggal Serah Terima dulu.'); return; }
 
-  const selected = getSelectedFromTable();
-  const missing = await checkMissingSelection(selected);
-  if (missing.length){
-    markMissingRows(missing);
-    const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
-    if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
-      hideSpinner?.(); return;
+  btn.disabled = true;
+  showSpinner?.();
+  try{
+    const selected = getSelectedFromTable();
+    const missing = await checkMissingSelection(selected);
+    if (missing.length){
+      markMissingRows(missing);
+      const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
+      if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
+        return;
+      }
     }
+    await generateCombinedSelected();
   }
-
-  try{ showSpinner?.(); await generateCombinedSelected(); }
   catch(err){ console.error(err); alert('Gagal membuat PDF gabungan.'); }
-  finally{ hideSpinner?.(); }
+  finally{
+    hideSpinner?.();
+    btn.disabled = false;
+  }
 });
 
 btnGenCMOnly?.addEventListener('click', async ()=>{
+  const btn = btnGenCMOnly;
   const tanggalInput = inputTanggalSerah?.value || '';
   if(!tanggalInput){ alert('Isi Tanggal Serah Terima dulu.'); return; }
-  try{ showSpinner?.(); await generateCMOnly(); }
+
+  btn.disabled = true;
+  showSpinner?.();
+  try{
+    await generateCMOnly();
+  }
   catch(err){ console.error(err); alert('Gagal membuat FORM CM.'); }
-  finally{ hideSpinner?.(); }
+  finally{
+    hideSpinner?.();
+    btn.disabled = false;
+  }
 });
 
 btnGenFilesOnly?.addEventListener('click', async ()=>{
+  const btn = btnGenFilesOnly;
   const selected = Array.from(document.querySelectorAll('#historiBody tr[data-name], #historiBody tr[data-hash]'))
     .filter(tr => tr.querySelector('input.pick')?.checked)
-    .map(tr => ({ hash: tr.getAttribute('data-hash') || '', name: tr.getAttribute('data-name') || '' }));
+    .map(tr => ({ hash: cleanHashForComparison(tr.getAttribute('data-hash')), name: (tr.getAttribute('data-name') || '').trim() }));
 
   if (selected.length === 0) {
     alert('Pilih minimal satu file dulu (ceklist di kolom paling kiri).');
     return;
   }
 
-  const missing = await checkMissingSelection(selected);
-  if (missing.length){
-    markMissingRows(missing);
-    const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
-    if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
-      hideSpinner?.(); return;
+  btn.disabled = true;
+  showSpinner?.();
+  try{
+    const missing = await checkMissingSelection(selected);
+    if (missing.length){
+      markMissingRows(missing);
+      const list = missing.slice(0,10).map(m=>m.name||m.hash).join('\n');
+      if(!confirm(`Ada ${missing.length} file tidak ditemukan, silahkan upload ulang file ini:\n${list}${missing.length>10?'\n...':''}\n\nLanjut generate tanpa file ini?`)){
+        return;
+      }
     }
+    await generateOriginalsOnly(selected);
   }
-
-  try{ showSpinner?.(); await generateOriginalsOnly(selected); }
   catch(err){ console.error(err); alert('Gagal menggabungkan PDF asli.'); }
-  finally{ hideSpinner?.(); }
+  finally{
+    hideSpinner?.();
+    btn.disabled = false;
+  }
 });
