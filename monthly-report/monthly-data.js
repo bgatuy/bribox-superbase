@@ -22,7 +22,9 @@
     let query = supabaseClient
       .from('monthly_reports')
       .select('*')
-      .eq('month', month);
+      .eq('month', month)
+      .order('date', { ascending: true })
+      .order('created_at', { ascending: true });
 
     // HANYA filter berdasarkan user_id jika BUKAN admin
     if (!isAdmin) {
