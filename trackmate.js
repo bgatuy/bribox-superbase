@@ -304,7 +304,11 @@ function extractFlexibleBlock(lines, startLabel, stopLabels = []) {
 let unitKerja = "-", kantorCabang = "-", tanggalFormatted = "-", tanggalRaw = "",
     problem = "-", berangkat = "-", tiba = "-", mulai = "-", selesai = "-",
     solusi = "-", jenisPerangkat = "-", serial = "-", merk = "-", type = "-",
-    pic = "-", status = "-";
+    pic = "-", status = "-",
+    // Cache untuk optimasi Copy/Save
+    cachedFileBuffer = null,
+    cachedHashPromise = null,
+    cachedMetaPromise = null;
 
 /* ========= Events ========= */
 lokasiSelect?.addEventListener("change", updateOutput);
@@ -313,11 +317,27 @@ fileInput?.addEventListener('change', async function () {
   const file = fileInput.files[0];
   if (!file || file.type !== 'application/pdf') return;
 
-  const reader = new FileReader();
-  reader.onload = async function () {
-    try {
-      const typedarray = new Uint8Array(reader.result);
-      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+  // Reset cache setiap kali file berubah
+  cachedFileBuffer = null;
+  cachedHashPromise = null;
+  cachedMetaPromise = null;
+
+  try {
+    // 1. Baca file ke buffer (sekali saja)
+    cachedFileBuffer = await file.arrayBuffer();
+
+    // 2. Mulai kalkulasi Hash & Meta di background (Pre-calculation)
+    cachedHashPromise = sha256Buffer(cachedFileBuffer);
+    cachedMetaPromise = cachedHashPromise.then(async (hash) => {
+      const existing = await getMetaByHash(hash);
+      if (existing) return existing;
+      return autoCalibratePdf(cachedFileBuffer).catch(() => null);
+    });
+
+    // 3. Ekstrak teks untuk UI (Prioritas Utama)
+    // Gunakan buffer yang sudah dibaca
+    const typedarray = new Uint8Array(cachedFileBuffer);
+    const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
 
       let rawText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -361,12 +381,10 @@ fileInput?.addEventListener('change', async function () {
       status = clean(rawText.match(/STATUS PEKERJAAN\s*:\s*(.+)/)?.[1]) || '-';
 
       updateOutput();
-    } catch (err) {
-      console.error("Gagal memproses PDF:", err);
-      alert("Terjadi kesalahan saat membaca PDF.");
-    }
-  };
-  reader.readAsArrayBuffer(file);
+  } catch (err) {
+    console.error("Gagal memproses PDF:", err);
+    alert("Terjadi kesalahan saat membaca PDF.");
+  }
 });
 
 /* ========= Output ========= */
@@ -425,25 +443,16 @@ copyBtn?.addEventListener("click", async () => {
       hideSpinner();
       return;
     }
-    const fileBuffer = await file.arrayBuffer();
+    
+    // Gunakan buffer yang sudah di-cache saat select file
+    const fileBuffer = cachedFileBuffer || await file.arrayBuffer();
 
     // Langkah 3: Jalankan tugas-tugas berat secara PARALEL
     const user = await getUserOrThrow();
     
-    // Tugas untuk menghitung hash dari buffer yang sudah dibaca
-    const contentHashPromise = sha256Buffer(fileBuffer);
-
-    // Tugas untuk mendapatkan/membuat metadata
-    const metaPromise = (async () => {
-      const hash = await contentHashPromise;
-      const existingMeta = await getMetaByHash(hash);
-      if (existingMeta) return existingMeta;
-        // Kalibrasi hanya jika meta belum ada, gunakan buffer yang sudah dibaca
-      return autoCalibratePdf(fileBuffer).catch(err => {
-        console.warn("Gagal auto-calibrate PDF:", err);
-        return null; // Jangan sampai error kalibrasi menggagalkan semua
-      });
-    })();
+    // Gunakan promise yang sudah jalan di background (jika ada)
+    const contentHashPromise = cachedHashPromise || sha256Buffer(fileBuffer);
+    const metaPromise = cachedMetaPromise || contentHashPromise.then(h => getMetaByHash(h).then(m => m || autoCalibratePdf(fileBuffer).catch(()=>null)));
 
     // Tugas untuk mengupload file (langsung pakai objek `file` agar lebih efisien)
     const uploadPromise = (async () => {
