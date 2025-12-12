@@ -471,6 +471,9 @@
   const minutesToExcelTime = (mins)=> (mins||0)/(24*60);
 
   async function exportXLSX(){
+    if (btnExportXlsx) btnExportXlsx.disabled = true;
+    if (typeof showSpinner === 'function') showSpinner();
+
     try{
       const rowsAll = await loadReportsFromSupabase(month);
       if(!rowsAll.length){ showToast('Data kosong untuk bulan ini.'); return; }
@@ -700,6 +703,10 @@
       const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fileName; a.click(); URL.revokeObjectURL(url);
 
     }catch(err){ console.error('Export XLSX error:',err); showToast('Gagal export XLSX. Cek console.'); }
+    finally{
+      if (typeof hideSpinner === 'function') hideSpinner();
+      if (btnExportXlsx) btnExportXlsx.disabled = false;
+    }
   }
 
   // ===== Reset bulan
