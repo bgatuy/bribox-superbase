@@ -225,6 +225,64 @@
       border-radius: 8px;
       transition: background-color 0.2s;
     }
+
+    /* --- Mobile Responsive Tweaks --- */
+    @media (max-width: 768px) {
+      .main {
+        padding: 1rem;
+        padding-bottom: 120px; /* Pastikan konten terbawah tidak tertutup navigasi */
+      }
+      h2 {
+        font-size: 1.25rem; /* Perkecil judul section */
+        margin-bottom: 1rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr; /* Stack kartu statistik ke bawah */
+        gap: 1rem;
+      }
+      .stat-card {
+        padding: 1rem; /* Kurangi padding kartu */
+      }
+      .stat-icon-wrapper {
+        width: 48px; height: 48px; /* Perkecil ikon */
+      }
+      .stat-icon-wrapper .material-icons {
+        font-size: 24px;
+      }
+      .stat-value {
+        font-size: 1.5rem; /* Sesuaikan ukuran font angka */
+      }
+      /* Tabel Mobile: Sembunyikan kolom tanggal agar muat di layar */
+      #user-table th:nth-child(3), #user-table td:nth-child(3),
+      #user-table th:nth-child(4), #user-table td:nth-child(4) {
+        display: none;
+      }
+      #user-table th, #user-table td {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    white-space: nowrap; /* INI KUNCINYA: Memaksa tabel melebar ke samping */
+  }
+      /* Sticky First Column (Email) agar tetap terlihat saat scroll */
+      #user-table th:first-child,
+      #user-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #fff;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+      }
+      #user-table th:first-child { background: #f8fafc; z-index: 3; }
+      #user-table tbody tr:hover td:first-child { background-color: #f8fafc; }
+
+      .user-management-section {
+        padding: 1rem;
+      }
+      /* Override inline styles untuk layout mobile yang lebih baik */
+      .danger-zone .action-item {
+        flex-direction: column !important;
+        align-items: stretch !important; /* Tombol reset jadi full width */
+      }
+    }
   </style>
 </head>
 <body data-page="admin" class="is-page-booting" style="visibility:hidden;">
