@@ -153,72 +153,60 @@ async function renderTabel(){
  *   STORAGE FETCH  *
  ********************/
 /**
- * Ambil semua buffer PDF milik user dari Supabase Storage + gabung META dari table pdf_history.
- * @returns {Promise<Array<{name: string, buffer: ArrayBuffer, meta: any, contentHash: string}>>}
+ * Ambil buffer sesuai pilihan (hash → fallback nama), urut sesuai pilihan tabel.
+ * OPTIMASI: Download PARALEL dan HANYA file yang dipilih.
  */
-async function getAllPdfBuffersFromSupabase() {
-  if (!supabaseClient) return [];
+async function fetchPdfBuffersBySelection(selected) {
+  if (!supabaseClient || !selected.length) return [];
   const user = await getUserOrThrow();
 
-  // 1) List file per user folder
-  const { data: files, error: listError } = await supabaseClient.storage
-    .from('pdf-forms')
-    .list(user.id, { limit: 1000 });
-  if (listError) {
-    console.error("Gagal ambil daftar file dari Supabase:", listError);
-    throw listError;
-  }
-  const fileNames = (files || []).map(f => f.name).filter(n => n?.endsWith('.pdf'));
-  const hashes = fileNames.map(n => n.replace(/\.pdf$/i,''));
-
-  // 2) Ambil meta untuk semua hash itu dalam satu query
+  // 1. Siapkan hash untuk query metadata
+  const hashes = selected.map(s => s.hash).filter(Boolean);
+  
+  // 2. Ambil metadata sekaligus (1 request)
   let metaMap = new Map();
   if (hashes.length) {
-    const { data: rows, error: metaErr } = await supabaseClient
+    const { data: rows } = await supabaseClient
       .from('pdf_history')
       .select('content_hash, meta')
       .in('content_hash', hashes);
-    if (!metaErr && Array.isArray(rows)) {
-      metaMap = new Map(rows.map(r => [r.content_hash, r.meta || null]));
+    if (rows) {
+      metaMap = new Map(rows.map(r => [r.content_hash, r.meta]));
     }
   }
 
-  // 3) Download tiap file & susun output + meta
-  const buffers = [];
-  for (const name of fileNames) {
-    const { data: blob, error: downloadError } = await supabaseClient.storage
-      .from('pdf-forms')
-      .download(`${user.id}/${name}`);
-    if (downloadError) continue;
+  // 3. Download file secara PARALEL (hanya yang dipilih)
+  const promises = selected.map(async (item) => {
+    // Tentukan path. Prioritas: data-path dari tabel > konstruksi manual
+    let path = item.path;
+    if (!path) {
+      // Fallback: coba tebak path standar jika data lama tidak punya path
+      if (item.hash) path = `${user.id}/${item.hash}.pdf`;
+      else path = `${user.id}/${item.name}`;
+    }
 
-    const buffer = await blob.arrayBuffer();
-    const chash = name.replace(/\.pdf$/i,'');
-    buffers.push({
-      name,
-      buffer,
-      meta: metaMap.get(chash) ?? null,
-      contentHash: chash
-    });
-  }
-  return buffers;
-}
+    try {
+      const { data: blob, error } = await supabaseClient.storage
+        .from('pdf-forms')
+        .download(path);
 
-/* Ambil buffer sesuai pilihan (hash → fallback nama), urut sesuai pilihan tabel */
-async function fetchPdfBuffersBySelection(selected) {
-  const all = await getAllPdfBuffersFromSupabase();
-  const byHash = new Map(), byName = new Map();
-  for (const it of all){
-    if (it.contentHash) byHash.set(it.contentHash, it);
-    if (it.name)        byName.set(it.name, it);
-  }
-  const out = [];
-  for (const s of selected){
-    let hit=null;
-    if (s.hash && byHash.has(s.hash)) hit = byHash.get(s.hash);
-    else if (s.name && byName.has(s.name)) hit = byName.get(s.name);
-    if (hit) out.push(hit);
-  }
-  return out;
+      if (error) throw error;
+      
+      const buffer = await blob.arrayBuffer();
+      return {
+        name: item.name,
+        buffer: buffer,
+        meta: metaMap.get(item.hash) || null,
+        contentHash: item.hash
+      };
+    } catch (err) {
+      console.warn(`Skip file gagal download: ${path}`, err);
+      return null;
+    }
+  });
+
+  const results = await Promise.all(promises);
+  return results.filter(Boolean);
 }
 
 /**
@@ -454,7 +442,8 @@ function getSelectedFromTable(){
   const base = (picked.length ? picked : rows);
   return base.map(r => ({
     hash: cleanHashForComparison(r.getAttribute('data-hash')),
-    name: (r.getAttribute('data-name') || '').trim() // Nama file boleh punya spasi, jadi tetap pakai trim biasa
+    name: (r.getAttribute('data-name') || '').trim(), // Nama file boleh punya spasi, jadi tetap pakai trim biasa
+    path: r.getAttribute('data-path') || ''
   }));
 }
 
@@ -465,7 +454,8 @@ async function checkMissingSelection(selected){
 
   for (const s of selected){
     // Pengecekan paling andal adalah berdasarkan content_hash yang sudah dibersihkan.
-    const ok = (s.hash && byHash.has(s.hash));
+    // FIX: Cek juga byName untuk mengakomodasi file lama yang mungkin belum punya hash di nama filenya
+    const ok = (s.hash && byHash.has(s.hash)) || (s.name && byName.has(s.name));
     if (!ok) {
       if (DEBUG_CONSOLE_LOG) {
         console.error('DEBUG: HASH TIDAK DITEMUKAN ->', `"${s.hash}"`, '(dari tabel HTML)');
@@ -853,7 +843,11 @@ btnGenFilesOnly?.addEventListener('click', async ()=>{
   const btn = btnGenFilesOnly;
   const selected = Array.from(document.querySelectorAll('#historiBody tr[data-name], #historiBody tr[data-hash]'))
     .filter(tr => tr.querySelector('input.pick')?.checked)
-    .map(tr => ({ hash: cleanHashForComparison(tr.getAttribute('data-hash')), name: (tr.getAttribute('data-name') || '').trim() }));
+    .map(tr => ({ 
+      hash: cleanHashForComparison(tr.getAttribute('data-hash')), 
+      name: (tr.getAttribute('data-name') || '').trim(),
+      path: tr.getAttribute('data-path') || ''
+    }));
 
   if (selected.length === 0) {
     alert('Pilih minimal satu file dulu (ceklist di kolom paling kiri).');
